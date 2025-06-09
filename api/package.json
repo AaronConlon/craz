@@ -1,0 +1,26 @@
+{
+  "name": "craz-api",
+  "version": "1.0.0",
+  "description": "Craz 书签管理 API 服务",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy",
+    "build": "wrangler deploy --dry-run",
+    "test": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.2.2",
+    "@plasmohq/messaging": "^0.7.1",
+    "hono": "^4.0.0",
+    "zod": "^3.25.56"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "@types/node": "^20.11.5",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0",
+    "wrangler": "^4"
+  }
+}

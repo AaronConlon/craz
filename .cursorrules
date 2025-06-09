@@ -1,0 +1,228 @@
+# Craz Chrome Extension - Cursor Rules
+
+## 项目概述
+这是一个基于 Plasmo 框架的 Chrome 扩展项目，使用 React + TypeScript 开发。
+
+## 代码哲学
+**代码是给人看的，只是顺便给机器运行。**
+- 优先考虑代码的可读性和可维护性
+- 使用清晰的变量名和函数名
+- 适当添加注释解释复杂逻辑
+- 保持代码简洁而富有表现力
+
+## 架构原则 - Feature-Sliced Design (FSD)
+
+### 目录结构
+```
+项目根目录/
+├── source/              # 源代码目录
+│   ├── components/      # 通用组件
+│   ├── features/        # 功能模块
+│   ├── pages/          # 页面组件
+│   ├── widgets/        # 复合组件
+│   ├── shared/         # 共享资源
+│   │   ├── api/        # API 调用
+│   │   ├── hooks/      # 通用 hooks
+│   │   ├── lib/        # 第三方库配置
+│   │   ├── types/      # 类型定义
+│   │   └── utils/      # 工具函数
+│   ├── contents/       # Plasmo content scripts
+│   └── popup/         # Plasmo popup
+├── background/         # Plasmo background scripts (根目录级别)
+│   └── messages/       # Background message handlers
+├── api/               # 其他 API 相关文件 (根目录级别)
+└── 其他配置文件...
+```
+
+### 重要目录规范
+- **Background Scripts**: 必须位于项目根目录的 `background/` 目录下
+- **Background Messages**: 所有 background message handlers 位于 `background/messages/`
+- **不允许**: 在 `source/` 目录下创建 background 相关代码
+- **原因**: Plasmo 框架要求 background scripts 位于特定位置，便于构建和部署
+
+### 文件命名规范
+- 组件文件使用 PascalCase: `MyComponent.tsx`
+- 工具函数使用 camelCase: `myUtilFunction.ts`
+- 类型定义使用 PascalCase: `MyType.ts`
+- 常量使用 UPPER_SNAKE_CASE: `API_ENDPOINTS.ts`
+
+## 技术栈规范
+
+### React & TypeScript
+- 使用函数式组件和 React Hooks
+- 严格的 TypeScript 类型检查
+- 使用 interface 而非 type (除非需要联合类型)
+- 优先使用具名导出而非默认导出
+
+### 样式 - Tailwind CSS v3
+- 使用 Tailwind CSS 进行样式编写
+- 避免内联样式，优先使用 Tailwind 类名
+- 复杂样式可以提取为组件或使用 @apply 指令
+- 响应式设计使用 Tailwind 断点前缀
+
+### 图标 - Lucide React
+- 统一使用 lucide-react 图标库
+- 图标大小使用 size prop 而非 className
+- 保持图标风格一致性
+
+### 状态管理
+- 简单状态使用 useState/useReducer
+- 复杂异步状态使用 @tanstack/react-query
+- 全局状态可以使用 Context API 或 Zustand
+
+### HTTP 请求
+- 使用 ky 进行 HTTP 请求
+- 结合 React Query 进行数据缓存和同步
+- 使用 Zod 进行数据验证
+
+### 时间处理
+- 统一使用 date-fns 进行时间处理
+- 避免使用原生 Date 方法
+- 时区处理使用 date-fns-tz
+
+### 扩展消息通信 - @plasmohq/messaging
+- 用于 Chrome 扩展内部通信（popup ↔ background ↔ content script）
+- **重要架构原则**: Background 作为服务的中间接口层
+  - UI 组件（popup/content script）不直接调用外部 API
+  - 所有外部数据请求都通过 background 处理
+  - UI 通过 messaging 与 background 通信获取数据
+  - 保证数据流向清晰和权限管理集中化
+
+### 工具函数与测试
+- 所有 utils 函数都应该编写对应的 Vitest 测试
+- 测试文件命名: `myFunction.test.ts`
+- 测试覆盖率应保持在 80% 以上
+- 使用 describe/it 结构组织测试用例
+
+## 代码组织原则
+
+### 文件拆分
+- 单个文件不超过 200 行代码
+- 复杂组件按功能拆分为多个子组件
+- 提取可复用的逻辑为自定义 hooks
+- 工具函数单独成文件
+
+### 导入导出
+- 使用绝对路径导入，配置路径别名
+- 相关导入按分组排序 (第三方库 → 内部模块 → 相对路径)
+- 使用 prettier-plugin-sort-imports 自动排序
+
+### 错误处理
+- 使用 Error Boundary 处理组件错误
+- API 错误统一处理和展示
+- 使用 Zod 进行运行时类型验证
+
+## Chrome 扩展特定规范
+
+### Plasmo 框架
+- 遵循 Plasmo 的文件约定和生命周期
+- 合理使用 Plasmo 的内置功能和 API
+- content scripts, popup, background 分离关注点
+
+### Background 作为服务中间层
+- **核心职责**: 作为扩展的服务层和中间接口层
+- **数据流向**: UI → Background (via messaging) → External API → Background → UI
+- **消息处理**: 使用 @plasmohq/messaging 处理跨组件通信
+- **API 集中化**: 所有外部服务调用集中在 background 中处理
+- **权限管理**: 敏感权限和 API 密钥统一在 background 管理
+- **数据缓存**: 可在 background 中实现数据缓存和状态管理
+
+### 权限管理
+- 最小权限原则，只申请必要的权限
+- 动态权限申请而非静态声明
+
+### 性能优化
+- 使用 React.memo 防止不必要的重渲染
+- 大组件使用 React.lazy 进行代码分割
+- 图片和资源进行适当的压缩和优化
+
+## 代码质量
+- 使用 ESLint 和 Prettier 保持代码风格一致
+- 提交前运行类型检查和测试
+- 使用有意义的 commit message
+- 定期 code review
+
+## 示例代码结构
+
+### 组件示例
+```typescript
+// components/Button/Button.tsx
+import { ButtonHTMLAttributes, forwardRef } from 'react'
+import { cn } from '~/shared/utils'
+
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary'
+  size?: 'sm' | 'md' | 'lg'
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'primary', size = 'md', ...props }, ref) => {
+    return (
+      <button
+        ref={ref}
+        className={cn(
+          'inline-flex items-center justify-center rounded-md font-medium',
+          variant === 'primary' && 'bg-blue-600 text-white hover:bg-blue-700',
+          variant === 'secondary' && 'bg-gray-200 text-gray-900 hover:bg-gray-300',
+          size === 'sm' && 'h-8 px-3 text-sm',
+          size === 'md' && 'h-10 px-4',
+          size === 'lg' && 'h-12 px-6 text-lg',
+          className
+        )}
+        {...props}
+      />
+    )
+  }
+)
+```
+
+### Background 消息处理示例
+```typescript
+// background/api.ts - Background 中的 API 处理
+import { sendToContentScript } from "@plasmohq/messaging"
+
+export const handleApiRequest = async (req, res) => {
+  try {
+    // 在 background 中处理 API 调用
+    const apiResponse = await fetch('https://api.example.com/data')
+    const data = await apiResponse.json()
+    
+    res.send({ success: true, data })
+  } catch (error) {
+    res.send({ success: false, error: error.message })
+  }
+}
+```
+
+```typescript
+// popup/hooks/useApiData.ts - UI 中通过 messaging 获取数据  
+import { sendToBackground } from "@plasmohq/messaging"
+
+export const useApiData = () => {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      // UI 通过 messaging 与 background 通信
+      const response = await sendToBackground({
+        name: "api-request",
+        body: { endpoint: "/data" }
+      })
+      
+      if (response.success) {
+        setData(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  return { data, loading, fetchData }
+}
+```
+
+遵循这些规则，保持代码的一致性、可读性和可维护性。 

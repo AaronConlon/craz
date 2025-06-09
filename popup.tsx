@@ -1,10 +1,12 @@
 import { useState } from "react"
+import "./style.css"
 
 function IndexPopup() {
   const [data, setData] = useState("")
 
   return (
     <div
+      className="text-red-400"
       style={{
         padding: 16
       }}>

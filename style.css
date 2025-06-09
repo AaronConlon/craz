@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* macOS 风格滚动条 */
+@layer utilities {
+  .scrollbar-macos {
+    /* WebKit 浏览器滚动条样式 */
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0);
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+    }
+
+    /* 滚动时显示滚动条 */
+    &:hover::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(0, 0, 0, 0.3);
+    }
+
+    &::-webkit-scrollbar-thumb:active {
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    /* 移除滚动条的箭头按钮 */
+    &::-webkit-scrollbar-button {
+      display: none;
+    }
+
+    /* Firefox 滚动条样式 */
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  /* 滚动时显示滚动条的变体 */
+  .scrollbar-macos-auto {
+    /* WebKit 浏览器滚动条样式 */
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(156, 163, 175, 0.4); /* gray-400 */
+      border-radius: 3px;
+      transition: all 0.2s ease;
+      opacity: 0;
+    }
+
+    /* 当容器被悬停或正在滚动时显示滚动条 */
+    &:hover::-webkit-scrollbar-thumb,
+    &.scrolling::-webkit-scrollbar-thumb {
+      opacity: 1;
+      background-color: rgba(156, 163, 175, 0.6);
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(107, 114, 128, 0.8); /* gray-500 */
+    }
+
+    &::-webkit-scrollbar-thumb:active {
+      background-color: rgba(75, 85, 99, 0.9); /* gray-600 */
+    }
+
+    &::-webkit-scrollbar-button {
+      display: none;
+    }
+
+    /* Firefox 支持 */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+  }
+
+  /* 更细的滚动条变体 */
+  .scrollbar-macos-thin {
+    &::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: transparent;
+      border-radius: 2px;
+      transition: background-color 0.15s ease;
+    }
+
+    &:hover::-webkit-scrollbar-thumb {
+      background-color: rgba(156, 163, 175, 0.5);
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(107, 114, 128, 0.7);
+    }
+
+    &::-webkit-scrollbar-button {
+      display: none;
+    }
+
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+}

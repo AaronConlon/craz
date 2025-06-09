@@ -1,4 +1,3 @@
-
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -31,3 +30,14 @@ dist/
 
 # typescript
 .tsbuildinfo
+
+# api
+api/node_modules
+api/dist
+api/coverage
+api/out
+api/build
+api/dist
+api/coverage
+api/out
+api/build
