@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { sendToBackground } from '@plasmohq/messaging'
-import { cn, isBase64Image, saveFaviconCache } from '../utils'
-import { useFaviconCache } from '../hooks'
+import { cn, isBase64Image } from '../utils'
+import { DEFAULT_FAVICON_BASE64 } from '../utils/default-favicon'
 
 interface FaviconProps {
   /** Favicon 图片 URL */
@@ -17,12 +17,12 @@ interface FaviconProps {
 }
 
 /**
- * 简洁的 Favicon 组件
+ * Favicon 组件
  * 
  * 逻辑：
- * 1. 始终显示背景色
- * 2. 如果有 src 且加载成功，显示图片覆盖背景
- * 3. 如果没有 src 或加载失败，只显示背景色
+ * 1. 首先通过 background message 从 IndexedDB 缓存获取 favicon
+ * 2. 如果没有缓存，使用 HEAD 请求检测资源可用性
+ * 3. 资源可用则显示原始 URL 并异步获取缓存，否则显示默认图标
  */
 export function Favicon({
   src,
@@ -31,48 +31,111 @@ export function Favicon({
   alt = "",
   backgroundColor = "bg-gray-200"
 }: FaviconProps) {
+  const [finalUrl, setFinalUrl] = useState<string | null>(null)
   const [showImage, setShowImage] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  // 使用favicon缓存
-  const { finalUrl } = useFaviconCache(src)
-
-  // 处理favicon缓存
+  // 获取 favicon（优先从缓存，没有则检测可用性并缓存）
   useEffect(() => {
-    if (src && !isBase64Image(src)) {
-      // 如果不是base64格式，发送给background保存
-      saveFaviconToCache(src)
+    if (!src) {
+      setFinalUrl(null)
+      return
     }
+
+    // 如果已经是 base64 格式，直接使用
+    if (isBase64Image(src)) {
+      setFinalUrl(src)
+      return
+    }
+
+    // 如果是特殊 url，则使用默认 favicon
+    if (src.includes('chrome://')) {
+      setFinalUrl(DEFAULT_FAVICON_BASE64)
+      return
+    }
+
+    const loadFavicon = async () => {
+      setLoading(true)
+      try {
+        // 通过 background message 从 IndexedDB 获取缓存
+        const cacheResponse = await sendToBackground({
+          name: 'get-favicon-cache',
+          body: { url: src }
+        })
+
+        if (cacheResponse.success && cacheResponse.cached) {
+          console.log('[Favicon] 使用缓存 favicon:', src)
+          setFinalUrl(cacheResponse.cached)
+        } else {
+          // 没有缓存，使用 HEAD 请求检测资源可用性
+          console.log('[Favicon] 没有缓存，检测资源可用性:', src)
+
+          const availabilityResponse = await sendToBackground({
+            name: 'check-favicon-availability',
+            body: {
+              url: src,
+              timeout: 3000 // 3秒超时
+            }
+          })
+
+          if (availabilityResponse.success && availabilityResponse.available) {
+            console.log('[Favicon] 资源可用，使用原始 URL:', {
+              url: src,
+              statusCode: availabilityResponse.statusCode,
+              contentType: availabilityResponse.contentType,
+              contentLength: availabilityResponse.contentLength
+            })
+            setFinalUrl(src)
+            // 异步获取并缓存 favicon
+            fetchAndCacheFavicon(src)
+          } else {
+            console.log('[Favicon] 资源不可用，使用默认图标:', {
+              url: src,
+              error: availabilityResponse.error
+            })
+            setFinalUrl(DEFAULT_FAVICON_BASE64)
+          }
+        }
+      } catch (error) {
+        console.error('[Favicon] 处理 favicon 失败:', error)
+        setFinalUrl(DEFAULT_FAVICON_BASE64) // 出错时使用默认图标
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadFavicon()
   }, [src])
 
-  // 保存favicon到缓存
-  const saveFaviconToCache = async (url: string) => {
+  // 通过 background 获取并缓存 favicon
+  const fetchAndCacheFavicon = async (url: string) => {
     try {
-      console.log('[Favicon] 开始缓存 favicon:', url)
+      console.log('[Favicon] 开始获取并缓存 favicon:', url)
 
       const response = await sendToBackground({
-        name: 'save-favicon',
+        name: 'get-website-favicon',
         body: { url }
       })
 
-      if (response.success) {
-        const logMessage = response.isDefault
-          ? '[Favicon] 使用默认 favicon:'
-          : '[Favicon] Favicon 缓存成功:'
-
-        console.log(logMessage, {
-          url: response.url,
-          size: response.size,
-          isDefault: response.isDefault
+      if (response.success && response.faviconBase64) {
+        // 通过 background message 保存到 IndexedDB
+        const saveResponse = await sendToBackground({
+          name: 'save-favicon-cache',
+          body: {
+            url,
+            base64: response.faviconBase64
+          }
         })
 
-        // 保存到 IndexedDB
-        await saveFaviconCache(url, response.base64)
-      } else {
-        console.warn('[Favicon] Favicon 缓存失败:', response.error)
+        if (saveResponse.success) {
+          // 更新显示的 URL
+          setFinalUrl(response.faviconBase64)
+          console.log('[Favicon] Favicon 获取并缓存成功:', url)
+        }
       }
     } catch (error) {
-      console.error('[Favicon] Favicon 缓存错误:', error)
+      console.error('[Favicon] 获取 favicon 失败:', error)
     }
   }
 
@@ -86,13 +149,18 @@ export function Favicon({
   const handleError = () => {
     setShowImage(false)
     setImageLoaded(true)
+    // 如果原始 URL 加载失败，回退到默认图标
+    if (finalUrl !== DEFAULT_FAVICON_BASE64) {
+      console.log('[Favicon] 图片加载失败，回退到默认图标:', src)
+      setFinalUrl(DEFAULT_FAVICON_BASE64)
+    }
   }
 
   return (
     <div
       className={cn(
         "flex-shrink-0 rounded-sm relative overflow-hidden",
-        imageLoaded ? "bg-transparent" : backgroundColor,
+        finalUrl && imageLoaded ? "bg-transparent" : backgroundColor,
         className
       )}
       style={{ width: size, height: size }}
@@ -111,6 +179,13 @@ export function Favicon({
           onError={handleError}
           loading="lazy"
         />
+      )}
+
+      {/* 加载指示器 */}
+      {loading && !finalUrl && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
+        </div>
       )}
     </div>
   )

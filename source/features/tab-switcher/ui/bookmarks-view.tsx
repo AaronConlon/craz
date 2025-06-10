@@ -110,15 +110,15 @@ export function BookmarksView({ mode }: BookmarksViewProps) {
 
   if (loading) {
     return (
-      <div className="p-8 text-center">
-        <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
+      <div className="p-8 text-center min-h-[320px]">
+        <div className="w-8 h-8 mx-auto mb-4 border-2 border-blue-500 rounded-full animate-spin border-t-transparent" />
         <p className="text-gray-600">加载书签中...</p>
       </div>
     )
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 min-h-[320px]">
       {/* 标题 */}
       <div className="flex items-center gap-3 mb-6">
         {mode === 'user' ? (
@@ -133,7 +133,7 @@ export function BookmarksView({ mode }: BookmarksViewProps) {
 
       {/* 搜索框 */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <Search className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={20} />
         <input
           type="text"
           placeholder="搜索书签..."
@@ -156,7 +156,7 @@ export function BookmarksView({ mode }: BookmarksViewProps) {
               />
             ))
           ) : (
-            <div className="text-center py-8 text-gray-500">
+              <div className="py-8 text-center text-gray-500">
               未找到匹配的书签
             </div>
           )
@@ -173,7 +173,7 @@ export function BookmarksView({ mode }: BookmarksViewProps) {
               />
             ))
           ) : (
-            <div className="text-center py-8 text-gray-500">
+                <div className="py-8 text-center text-gray-500">
               {mode === 'user' ? '暂无个人书签' : '暂无团队书签'}
             </div>
           )
@@ -197,7 +197,6 @@ function BookmarkItem({ bookmark, onClick, className = '' }: BookmarkItemProps) 
     >
       <Favicon
         src={bookmark.url?.includes('chrome://') ? undefined : undefined}
-        url={bookmark.url}
         size={20}
       />
       <div className="flex-1 min-w-0">
@@ -208,7 +207,7 @@ function BookmarkItem({ bookmark, onClick, className = '' }: BookmarkItemProps) 
       </div>
       <ExternalLink
         size={16}
-        className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="text-gray-400 transition-opacity opacity-0 group-hover:opacity-100"
       />
     </button>
   )
@@ -237,7 +236,7 @@ function BookmarkTreeItem({
       <div>
         <button
           onClick={onToggle}
-          className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+          className="flex items-center w-full gap-3 p-3 text-left transition-colors rounded-lg hover:bg-gray-50"
           style={{ paddingLeft: `${12 + level * 20}px` }}
         >
           <Folder
@@ -245,7 +244,7 @@ function BookmarkTreeItem({
             className={`text-gray-600 transition-transform ${expanded ? 'rotate-0' : '-rotate-90'}`}
           />
           <span className="font-medium text-gray-800">{bookmark.title}</span>
-          <span className="text-sm text-gray-500 ml-auto">
+          <span className="ml-auto text-sm text-gray-500">
             {bookmark.children?.length} 项
           </span>
         </button>

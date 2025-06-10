@@ -171,3 +171,4 @@ export async function cleanExpiredFaviconCache(): Promise<void> {
 export function isBase64Image(src: string): boolean {
   return src.startsWith("data:image/") && src.includes("base64,")
 }
+ 

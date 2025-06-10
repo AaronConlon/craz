@@ -1,62 +1,90 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { cn } from '../utils'
+import { PackageOpen } from 'lucide-react'
 
 interface AnimatedCounterProps {
   value: number
   duration?: number
   className?: string
-  prefix?: string
-  suffix?: string
+}
+
+interface DigitProps {
+  digit: number
+  duration?: number
 }
 
 /**
- * macOS 风格的动画数字计数器
+ * 单个数字动画组件
+ */
+function AnimatedDigit({ digit, duration = 600 }: DigitProps) {
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // 初始位置
+  const initialTop = digit > 5 ? '-900%' : '0%'
+  const targetTop = `-${digit * 100}%`
+
+  return (
+    <div className="relative w-3 h-4 overflow-hidden text-white bg-transparent">
+      <div
+        className={cn('relative flex flex-col')}
+        style={{
+          top: mounted ? targetTop : initialTop,
+          transition: `top ${duration}ms ease-out`
+        }}
+      >
+        {Array.from({ length: 10 }, (_, i) => (
+          <span
+            key={i}
+            className='flex items-center justify-center h-4 text-sm font-bold text-center'
+          >
+            {i}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 高级动画数字计数器
+ * 特性：
+ * - 纯 CSS 动画，无 JavaScript 状态管理
+ * - 动态注入样式，为每个数字生成对应动画
+ * - 根据数字大小采用不同滚动策略
+ * - 从右到左的波浪式动画延迟
  */
 export function AnimatedCounter({
   value,
-  duration = 800,
-  className,
-  prefix = '',
-  suffix = ''
+  duration = 600,
+  className
 }: AnimatedCounterProps) {
-  const [displayValue, setDisplayValue] = useState(0)
-  const [isAnimating, setIsAnimating] = useState(false)
+  // 将数字分解为单独的位数
+  const digits = useMemo(() => {
+    const str = value.toString()
+    return str.split('').map(Number)
+  }, [value])
 
-  useEffect(() => {
-    if (displayValue === value) return
-
-    setIsAnimating(true)
-    const startValue = displayValue
-    const diff = value - startValue
-    const startTime = Date.now()
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime
-      const progress = Math.min(elapsed / duration, 1)
-
-      // 使用 macOS 风格的缓动函数 (ease-out-cubic)
-      const easeOutCubic = 1 - Math.pow(1 - progress, 3)
-      const currentValue = Math.round(startValue + diff * easeOutCubic)
-
-      setDisplayValue(currentValue)
-
-      if (progress < 1) {
-        requestAnimationFrame(animate)
-      } else {
-        setIsAnimating(false)
-      }
-    }
-
-    requestAnimationFrame(animate)
-  }, [value, duration, displayValue])
+  if (value === 0) {
+    return <PackageOpen className='w-4 h-4 font-semibold text-sky-500' />
+  }
 
   return (
-    <span className={cn(
-      "font-mono text-sm font-bold transition-all duration-300 select-none",
-      isAnimating && "text-blue-600 scale-110",
-      className
-    )}>
-      {prefix}{displayValue.toLocaleString()}{suffix}
-    </span>
+    <div className='relative flex items-center p-1 px-1.5 rounded-full bg-gradient-to-br from-green-500 via-sky-400 to-sky-800'>
+      {/* <div className='absolute w-[8px] h-[8px] triangle-left triangle-sm bg-green-500 top-[-4px] left-[-4px]'></div> */}
+      {/* <div className='absolute w-[8px] h-[8px] triangle-right triangle-sm bg-sky-800 top-[-4px] right-[-4px]'></div> */}
+      <div className={cn("flex items-center", className)}>
+        {digits.map((digit, index) => (
+          <AnimatedDigit
+            key={`${digit}-${index}-${value}`} // 重新渲染以触发动画
+            digit={digit}
+            duration={duration}
+          />
+        ))}
+      </div>
+    </div>
   )
-} 
+}

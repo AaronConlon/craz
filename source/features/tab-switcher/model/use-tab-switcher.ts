@@ -9,7 +9,6 @@ import { sendToBackground } from "@plasmohq/messaging"
 
 import { BookmarksApiService } from "../../../shared/api/bookmarks"
 import { ChromeApiService } from "../../../shared/api/chrome"
-import { getFaviconCache, isDefaultFavicon } from "../../../shared/utils"
 import type {
   Bookmark,
   CreateBookmarkRequest,
@@ -37,46 +36,6 @@ export const BOOKMARK_QUERY_KEYS = {
 }
 
 /**
- * 处理标签页favicon缓存
- */
-async function processFaviconCache(tabs: any[]) {
-  const processedTabs = await Promise.all(
-    tabs.map(async (tab) => {
-      if (tab.favIconUrl) {
-        try {
-          // 尝试从缓存获取
-          const cached = await getFaviconCache(tab.favIconUrl)
-
-          if (cached) {
-            // 解析缓存格式："时间戳____base64"
-            const [timestamp, base64] = cached.split("____")
-            if (base64) {
-              const defaultFlag = isDefaultFavicon(base64) ? " (默认图标)" : ""
-              console.log(`[TabSwitcher] 使用缓存favicon${defaultFlag}:`, {
-                original: tab.favIconUrl,
-                timestamp: new Date(parseInt(timestamp)),
-                isDefault: isDefaultFavicon(base64)
-              })
-
-              return {
-                ...tab,
-                favIconUrl: base64 // 替换为缓存的base64图片
-              }
-            }
-          }
-        } catch (error) {
-          console.warn("[TabSwitcher] 获取favicon缓存失败:", error)
-        }
-      }
-
-      return tab
-    })
-  )
-
-  return processedTabs
-}
-
-/**
  * 标签页相关 hooks
  */
 
@@ -98,11 +57,7 @@ export function useAllTabs() {
 
       console.log(`[TabSwitcher] 获取到 ${response.tabs.length} 个标签页`)
 
-      // 处理favicon缓存
-      const tabsWithCache = await processFaviconCache(response.tabs)
-      console.log("[TabSwitcher] 处理favicon缓存后:", tabsWithCache)
-
-      return tabsWithCache
+      return response.tabs
     },
     staleTime: 1000, // 1秒内不重新获取
     refetchInterval: 5000, // 每5秒自动刷新

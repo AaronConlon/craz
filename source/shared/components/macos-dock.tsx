@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import { useEventListener } from 'ahooks'
 import { FileText, Bookmark, Users, Minus, Cloud } from 'lucide-react'
 import { cn } from '../utils'
 

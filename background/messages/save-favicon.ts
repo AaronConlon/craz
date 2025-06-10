@@ -1,4 +1,8 @@
-import type { PlasmoMessaging } from "@plasmohq/messaging"
+import type { PlasmoMessaging } from "@plasmohq/messaging";
+
+
+
+
 
 /**
  * Chrome 扩展架构说明：Background 作为服务中间层

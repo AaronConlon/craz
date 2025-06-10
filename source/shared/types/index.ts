@@ -34,3 +34,6 @@ export interface ComponentProps {
   className?: string
   children?: React.ReactNode
 }
+
+// 设置相关类型
+export * from "./settings"

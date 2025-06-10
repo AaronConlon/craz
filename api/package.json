@@ -8,6 +8,11 @@
     "deploy": "wrangler deploy",
     "build": "wrangler deploy --dry-run",
     "test": "vitest",
+    "test:integration": "vitest tests/integration",
+    "test:unit": "vitest tests/unit",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "test:api": "vitest tests/integration --run",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,6 +25,7 @@
     "@cloudflare/workers-types": "^4.20240208.0",
     "@types/node": "^20.11.5",
     "typescript": "^5.3.3",
+    "undici": "^7.10.0",
     "vitest": "^1.2.0",
     "wrangler": "^4"
   }

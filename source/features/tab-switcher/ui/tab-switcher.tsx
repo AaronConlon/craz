@@ -1,14 +1,13 @@
-import { useRef, useState } from 'react'
-import { useEventListener } from 'ahooks'
-import { Search, X, Bookmark, ExternalLink } from 'lucide-react'
-import { useAllTabs, useSwitchTab, useCloseTab, useBookmarks, useCreateBookmark } from '../model/use-tab-switcher'
-import { useDebounce, useScrollDetection, useBookmarkCount } from '../../../shared/hooks'
-import { TabFavicon, AnimatedCounter } from '~source/components'
-import { AdvancedDock, type ViewMode } from '../../../shared/components/advanced-dock'
-import { SettingsView } from './settings-view'
-import { BookmarksView } from './bookmarks-view'
+import { Bookmark, ExternalLink, Search, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { AnimatedCounter, EmptyState, EmptyStateVariants, TabFavicon } from '~source/components'
+import { cn } from '~source/shared/utils'
+import { AdvancedDock, type ViewMode } from '~source/shared/components/advanced-dock'
+import { useBookmarkCount, useDebounce, useScrollDetection } from '../../../shared/hooks'
+import { useAllTabs, useCloseTab, useCreateBookmark, useSwitchTab } from '../model/use-tab-switcher'
 import type { Tab } from '../types'
-import { cn, eventStoppers } from '~source/shared/utils'
+import { BookmarksView } from './bookmarks-view'
+import { SettingsView } from './settings-view'
 
 interface TabSwitcherProps {
   className?: string
@@ -18,7 +17,7 @@ interface TabSwitcherProps {
 export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeView, setActiveView] = useState<ViewMode>('tabs')
-  const debouncedQuery = useDebounce(searchQuery, 300)
+  const debouncedQuery = useDebounce(searchQuery, 200)
   const ref = useRef<HTMLDivElement>(null)
 
   const { data: tabs } = useAllTabs()
@@ -32,14 +31,23 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
   // 滚动检测
   const [scrollRef, isScrolling] = useScrollDetection<HTMLDivElement>(1500)
 
-  // 监听 ESC 键关闭
-  useEventListener('keydown', (event: KeyboardEvent) => {
-    if (event.key === 'Escape' && onClose) {
-      event.preventDefault()
-      event.stopPropagation()
-      onClose()
+  // 监听 ESC 键关闭 - 使用原生事件监听器确保非被动监听器
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && onClose) {
+        event.preventDefault()
+        event.stopPropagation()
+        onClose()
+      }
     }
-  }, { target: ref.current })
+
+    // 使用原生 addEventListener，明确设置 passive: false
+    document.addEventListener('keydown', handleKeyDown, { passive: false })
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
 
   // 过滤标签页
   const filteredTabs = tabs?.filter(tab =>
@@ -94,25 +102,26 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
         return (
           <>
             {/* 搜索框 */}
-            <div className="p-4 border-b border-gray-200">
-              <div className="relative">
-                <Search className="absolute z-10 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={16} />
-                <input
-                  type="text"
-                  placeholder="搜索标签页..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-3 pl-10 pr-20 text-gray-800 placeholder-gray-500 transition-all duration-200 rounded-lg outline-none bg-gray-50"
-                />
-                {/* 动画计数器 */}
-                <div className="absolute transform -translate-y-1/2 pointer-events-none top-1/2 right-3">
-                  <AnimatedCounter
-                    value={filteredTabs.length}
-                    className="text-lg font-black tracking-tight text-gray-800"
-                    suffix={searchQuery ? ` / ${tabs.length}` : ''}
+            <div className="px-4 py-1 border-b border-gray-100">
+              <div className="flex items-center justify-between w-full gap-4">
+                <div className="relative flex-grow">
+                  <Search className="absolute z-10 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={16} />
+                  <input
+                    type="text"
+                    placeholder="搜索标签页..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full py-3 pl-10 pr-20 text-gray-800 placeholder-gray-500 transition-all duration-200 rounded-lg outline-none bg-gray-50"
                   />
+
                 </div>
+                {/* 动画计数器 */}
+                <AnimatedCounter
+                  value={filteredTabs?.length ?? 0}
+                  className="flex-shrink-0 text-lg font-black tracking-tight text-gray-800"
+                />
               </div>
+
             </div>
 
             {/* 标签页列表 */}
@@ -124,9 +133,15 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
               )}
             >
               {filteredTabs.length === 0 ? (
-                <div className="p-8 text-center text-gray-600">
-                  {searchQuery ? '没有找到匹配的标签页' : '没有打开的标签页'}
-                </div>
+                <EmptyState
+                  {...(searchQuery
+                    ? EmptyStateVariants.noSearchResults
+                    : EmptyStateVariants.noTabs
+                  )}
+                  onClick={() => {
+                    console.log('click tabs:', tabs)
+                  }}
+                />
               ) : (
                 <div className="divide-y divide-gray-100">
                   {filteredTabs.map((tab) => (
@@ -202,24 +217,22 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
   }
 
   return (
-    <div ref={ref} className={cn('w-full max-h-[80vh] flex flex-col bg-white border-t border-gray-200', className)}
-      {...eventStoppers.all}
-    >
+    <div
+      ref={ref} className={cn('w-full h-full flex flex-col bg-white border-t border-gray-200 group overflow-hidden', className)}>
       {/* 主要内容区域 */}
       <div className="flex flex-col flex-1 min-h-0">
         {renderMainContent()}
       </div>
 
       {/* 高级 Dock */}
-      <div className="flex-shrink-0 px-4 py-2 border-t border-gray-200">
-        <AdvancedDock
+      <AdvancedDock
+        className='absolute inset-x-0 mx-auto transition-all duration-300 bottom-2 group-hover:bottom-2 w-max'
           activeView={activeView}
           onViewChange={setActiveView}
           tabCount={tabs?.length ?? 0}
           userBookmarkCount={userBookmarkCount}
           teamBookmarkCount={teamBookmarkCount}
-        />
-      </div>
+      />
     </div>
   )
 } 

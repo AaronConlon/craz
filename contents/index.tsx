@@ -1,5 +1,4 @@
 import { useState, Suspense, useEffect } from "react"
-import { useEventListener } from "ahooks"
 import cssText from "data-text:~style.css"
 import { ReactQueryProvider, SuspenseLoader, ErrorBoundary } from "~source/components"
 import { TabSwitcher } from "~source/features/tab-switcher"
@@ -11,9 +10,8 @@ export const getStyle = () => {
   return style
 }
 
-
 export default function ContentUI() {
-  const [opened, setOpened] = useState(!false)
+  const [opened, setOpened] = useState(false)
 
   // 防止背景页面滚动
   useEffect(() => {
@@ -40,44 +38,53 @@ export default function ContentUI() {
     }
   }, [opened])
 
-  // 监听键盘事件
-  useEventListener('keydown', (event: KeyboardEvent) => {
-    console.log('Keyboard event:', {
-      key: event.key,
-      opened,
-      modifiers: {
-        ctrl: event.ctrlKey,
-        alt: event.altKey,
-        shift: event.shiftKey,
-        meta: event.metaKey
+  // 监听键盘事件 - 使用原生事件监听器避免被动监听器问题
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      console.log('Keyboard event:', {
+        key: event.key,
+        opened,
+        modifiers: {
+          ctrl: event.ctrlKey,
+          alt: event.altKey,
+          shift: event.shiftKey,
+          meta: event.metaKey
+        }
+      })
+
+      // 检查当前焦点是否在输入框内
+      const activeElement = document.activeElement
+      const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        (activeElement as HTMLElement).contentEditable === 'true' ||
+        activeElement.getAttribute('contenteditable') === 'true'
+      )
+
+      console.log('isInputFocused:', isInputFocused, 'activeElement:', activeElement?.tagName)
+
+      // 如果正在输入框内输入，则不触发 c 键
+      if (isInputFocused) {
+        console.log('Input is focused, ignoring c key')
+        return
       }
-    })
 
-    // 检查当前焦点是否在输入框内
-    const activeElement = document.activeElement
-    const isInputFocused = activeElement && (
-      activeElement.tagName === 'INPUT' ||
-      activeElement.tagName === 'TEXTAREA' ||
-      (activeElement as HTMLElement).contentEditable === 'true' ||
-      activeElement.getAttribute('contenteditable') === 'true'
-    )
-
-    console.log('isInputFocused:', isInputFocused, 'activeElement:', activeElement?.tagName)
-
-    // 如果正在输入框内输入，则不触发 c 键
-    if (isInputFocused) {
-      console.log('Input is focused, ignoring c key')
-      return
+      // c 键切换开关 - 确保只按下了 c 键，没有修饰键
+      if (keyCheckers.isPureC(event)) {
+        console.log('Pure C key pressed (without modifiers), toggling opened state')
+        event.preventDefault()
+        event.stopPropagation()
+        setOpened(prev => !prev)
+      }
     }
 
-    // c 键切换开关 - 确保只按下了 c 键，没有修饰键
-    if (keyCheckers.isPureC(event)) {
-      console.log('Pure C key pressed (without modifiers), toggling opened state')
-      event.preventDefault()
-      event.stopPropagation()
-      setOpened(prev => !prev)
+    // 使用原生 addEventListener，明确设置 passive: false
+    window.addEventListener('keydown', handleKeyDown, { passive: false })
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
     }
-  }, { target: globalThis.window })
+  }, [opened])
 
   if (opened) {
     return (
@@ -87,16 +94,17 @@ export default function ContentUI() {
             {/* 毛玻璃遮罩背景 */}
             <div
               className="fixed inset-0 z-[9999998] glass-overlay"
-              onClick={() => setOpened(false)}
-              {...eventStoppers.scrollTouch}
             />
-
             {/* 居中的 TabSwitcher */}
-            <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4"
+              onClick={() => {
+                setOpened(false)
+              }}
+            >
               <div
-                className="glass-container rounded-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden"
+                {...eventStoppers.keyboard}
                 onClick={eventStoppers.stop}
-                {...eventStoppers.all}
+                className="glass-container rounded-2xl max-w-4xl w-full h-[520px] 2xl:h-[720px] max-h-[80vh] overflow-hidden z-[99999999]"
               >
                 <TabSwitcher onClose={() => setOpened(false)} />
               </div>

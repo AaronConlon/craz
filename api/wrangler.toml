@@ -5,13 +5,26 @@ compatibility_date = "2024-01-01"
 [vars]
 ENVIRONMENT = "development"
 
+# D1 数据库配置
+[[d1_databases]]
+binding = "DB"
+database_name = "craz-db"
+database_id = "e67b2b0f-93e9-4ffe-8a5c-6cc10246db3d"
+
+# KV 存储配置（保留现有的书签KV）
 [[kv_namespaces]]
 binding = "BOOKMARKS_KV"
 id = "3cf7dfb6565142a3b880566723de8435"
 
+# 生产环境配置
 [env.production]
-name = "craz-api"
+name = "craz-api-prod"
 vars = { ENVIRONMENT = "production" }
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "craz-db-prod"
+database_id = "your-production-database-id"
 
 [[env.production.kv_namespaces]]
 binding = "BOOKMARKS_KV"
