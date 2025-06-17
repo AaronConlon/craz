@@ -1,5 +1,5 @@
 import type { D1Database } from "@cloudflare/workers-types"
-import { sign, verify } from "hono/jwt"
+import { decode, sign, verify } from "hono/jwt"
 
 import type {
   JwtPayload,
@@ -12,6 +12,7 @@ import { DatabaseService, type DatabaseUser } from "./database"
 
 export class AuthService extends DatabaseService {
   private jwtSecret: string
+  private jwtAlgorithm: "HS256" | "HS384" | "HS512" = "HS256"
 
   constructor(db: D1Database, jwtSecret: string) {
     super(db)
@@ -36,27 +37,72 @@ export class AuthService extends DatabaseService {
     return passwordHash === hash
   }
 
-  // 生成JWT
+  // 生成JWT - 使用 Hono JWT helper 的最佳实践
   private async generateJWT(user: DatabaseUser): Promise<string> {
+    const now = Math.floor(Date.now() / 1000)
     const payload: JwtPayload = {
       userId: user.id,
       email: user.email,
       username: user.username,
       isSponsored: Boolean(user.is_sponsored),
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60 // 7天过期
+      iat: now, // 签发时间
+      exp: now + 7 * 24 * 60 * 60, // 7天过期
+      nbf: now // 生效时间
     }
 
-    return await sign(payload, this.jwtSecret)
+    try {
+      return await sign(payload, this.jwtSecret, this.jwtAlgorithm)
+    } catch (error) {
+      console.error("JWT 签名失败:", error)
+      throw new Error("令牌生成失败")
+    }
   }
 
-  // 验证JWT
+  // 验证JWT - 使用 Hono JWT helper 的验证功能
   async verifyJWT(token: string): Promise<JwtPayload | null> {
     try {
-      const payload = await verify(token, this.jwtSecret)
+      const payload = await verify(token, this.jwtSecret, this.jwtAlgorithm)
       return payload as JwtPayload
     } catch (error) {
-      console.error("JWT verification failed:", error)
+      console.error("JWT 验证失败:", error)
+      return null
+    }
+  }
+
+  // 解码JWT（不验证签名） - 用于调试和检查令牌内容
+  decodeJWT(token: string): { header: any; payload: JwtPayload } | null {
+    try {
+      const { header, payload } = decode(token)
+      return { header, payload: payload as JwtPayload }
+    } catch (error) {
+      console.error("JWT 解码失败:", error)
+      return null
+    }
+  }
+
+  // 刷新JWT令牌
+  async refreshJWT(oldToken: string): Promise<string | null> {
+    try {
+      // 先验证旧令牌
+      const payload = await this.verifyJWT(oldToken)
+      if (!payload) {
+        return null
+      }
+
+      // 获取用户信息
+      const dbUser = await this.queryFirst<DatabaseUser>(
+        "SELECT * FROM users WHERE id = ? LIMIT 1",
+        [payload.userId]
+      )
+
+      if (!dbUser) {
+        return null
+      }
+
+      // 生成新令牌
+      return await this.generateJWT(dbUser)
+    } catch (error) {
+      console.error("JWT 刷新失败:", error)
       return null
     }
   }

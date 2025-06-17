@@ -1,12 +1,14 @@
 import { useState, Suspense, useEffect } from "react"
 import cssText from "data-text:~style.css"
+import sonnerCssText from "data-text:~sonner.css"
+import { Toaster } from "sonner"
 import { ReactQueryProvider, SuspenseLoader, ErrorBoundary } from "~source/components"
 import { TabSwitcher } from "~source/features/tab-switcher"
 import { eventStoppers, keyCheckers } from "~source/shared/utils"
 
 export const getStyle = () => {
   const style = document.createElement("style")
-  style.textContent = cssText
+  style.textContent = cssText + '\n' + sonnerCssText
   return style
 }
 
@@ -70,7 +72,7 @@ export default function ContentUI() {
       }
 
       // c 键切换开关 - 确保只按下了 c 键，没有修饰键
-      if (keyCheckers.isPureC(event)) {
+      if (keyCheckers.isPureC(event) && opened === false) {
         console.log('Pure C key pressed (without modifiers), toggling opened state')
         event.preventDefault()
         event.stopPropagation()
@@ -111,6 +113,16 @@ export default function ContentUI() {
             </div>
           </Suspense>
         </ErrorBoundary>
+        {/* Sonner Toast组件 - 放在最外层确保在最顶层 */}
+        <Toaster
+          position="top-right"
+          expand={false}
+          visibleToasts={5}
+          className="toast-top-layer"
+          toastOptions={{
+            duration: 2500,
+          }}
+        />
       </ReactQueryProvider>
     )
   }

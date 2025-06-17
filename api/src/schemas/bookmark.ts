@@ -22,6 +22,8 @@ export const BookmarkSchema = z.object({
 export const CreateBookmarkSchema = z.object({
   title: z.string().min(1, "标题不能为空").max(200, "标题过长"),
   url: z.string().url("URL 格式不正确"),
+  parentId: z.string().nullable().optional(),
+  sortOrder: z.number().optional().default(0),
   tags: z.array(z.string()).optional().default([]),
   description: z.string().max(1000, "描述过长").optional().default("")
 })
@@ -30,8 +32,11 @@ export const CreateBookmarkSchema = z.object({
 export const UpdateBookmarkSchema = z.object({
   title: z.string().min(1, "标题不能为空").max(200, "标题过长").optional(),
   url: z.string().url("URL 格式不正确").optional(),
+  parentId: z.string().nullable().optional(),
+  sortOrder: z.number().optional(),
   tags: z.array(z.string()).optional(),
-  description: z.string().max(1000, "描述过长").optional()
+  description: z.string().max(1000, "描述过长").optional(),
+  metadata: z.record(z.any()).optional()
 })
 
 // 查询参数 schema
@@ -47,7 +52,7 @@ export const BookmarkQuerySchema = z.object({
 
 // 搜索查询 schema
 export const SearchBookmarkSchema = z.object({
-  q: z.string().min(1, "搜索关键词不能为空"),
+  q: z.string().min(1, "搜索关键词不能为空").optional(),
   tags: z
     .string()
     .optional()

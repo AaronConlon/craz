@@ -19,11 +19,13 @@
     "@hono/zod-validator": "^0.2.2",
     "@plasmohq/messaging": "^0.7.1",
     "hono": "^4.0.0",
+    "nanoid": "^5.1.5",
     "zod": "^3.25.56"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240208.0",
     "@types/node": "^20.11.5",
+    "jsdom": "^26.1.0",
     "typescript": "^5.3.3",
     "undici": "^7.10.0",
     "vitest": "^1.2.0",

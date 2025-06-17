@@ -1,20 +1,15 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  useSuspenseQuery
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 
-import { sendToBackground } from "@plasmohq/messaging"
 
-import { BookmarksApiService } from "../../../shared/api/bookmarks"
-import { ChromeApiService } from "../../../shared/api/chrome"
-import type {
-  Bookmark,
-  CreateBookmarkRequest,
-  Tab,
-  UpdateBookmarkRequest
-} from "../types"
+
+import { sendToBackground } from "@plasmohq/messaging";
+
+
+
+import { BookmarksApiService } from "../../../shared/api/bookmarks";
+import { ChromeApiService } from "../../../shared/api/chrome";
+import type { Bookmark, CreateBookmarkRequest, Tab, UpdateBookmarkRequest } from "../types";
+
 
 // Query Keys
 export const TAB_QUERY_KEYS = {
@@ -130,6 +125,43 @@ export function useCloseTab() {
     },
     onError: (error) => {
       console.error("[TabSwitcher] 关闭标签页失败:", error)
+    }
+  })
+}
+
+// 清理重复标签页
+export function useCleanDuplicateTabs() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (options?: {
+      preserveActiveTab?: boolean
+      dryRun?: boolean
+    }) => {
+      console.log("[TabSwitcher] 开始清理重复标签页:", options)
+
+      const response = await sendToBackground({
+        name: "clean-duplicate-tabs",
+        body: options || {}
+      })
+
+      if (!response.success) {
+        throw new Error(response.error || "清理重复标签页失败")
+      }
+
+      console.log(
+        `[TabSwitcher] 清理完成，关闭了 ${response.totalClosed} 个重复标签页`
+      )
+
+      return response
+    },
+    onSuccess: (data) => {
+      // 刷新标签页列表
+      queryClient.invalidateQueries({ queryKey: ["tabs"] })
+      console.log("[TabSwitcher] 重复标签页清理成功，刷新列表")
+    },
+    onError: (error) => {
+      console.error("[TabSwitcher] 清理重复标签页失败:", error)
     }
   })
 }

@@ -46,7 +46,7 @@ export function EmptyState({
     <div
       className={cn(
         'flex flex-col items-center justify-center p-8 text-center',
-        onClick && 'cursor-pointer hover:bg-gray-50 transition-colors',
+        onClick && 'transition-colors',
         className
       )}
       onClick={onClick}

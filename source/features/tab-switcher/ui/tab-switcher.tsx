@@ -1,13 +1,15 @@
-import { Bookmark, ExternalLink, Search, X } from 'lucide-react'
+import { Bookmark, BrushCleaning, Copy, ExternalLink, Redo2, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { AnimatedCounter, EmptyState, EmptyStateVariants, TabFavicon } from '~source/components'
-import { cn } from '~source/shared/utils'
 import { AdvancedDock, type ViewMode } from '~source/shared/components/advanced-dock'
+import { cn } from '~source/shared/utils'
 import { useBookmarkCount, useDebounce, useScrollDetection } from '../../../shared/hooks'
-import { useAllTabs, useCloseTab, useCreateBookmark, useSwitchTab } from '../model/use-tab-switcher'
+import { useAllTabs, useCloseTab, useCreateBookmark, useSwitchTab, useCleanDuplicateTabs } from '../model/use-tab-switcher'
 import type { Tab } from '../types'
 import { BookmarksView } from './bookmarks-view'
 import { SettingsView } from './settings-view'
+import { useRestoreLastClosedTab } from '../model/useRestoreLastClosedTab'
 
 interface TabSwitcherProps {
   className?: string
@@ -27,6 +29,8 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
   const switchTab = useSwitchTab()
   const closeTab = useCloseTab()
   const createBookmark = useCreateBookmark()
+  const cleanDuplicateTabs = useCleanDuplicateTabs()
+  const restoreLastClosedTab = useRestoreLastClosedTab()
 
   // 滚动检测
   const [scrollRef, isScrolling] = useScrollDetection<HTMLDivElement>(1500)
@@ -81,10 +85,42 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
         url: tab.url,
         tags: ['from-tab-switcher'],
       })
+      toast.success('已添加书签')
     } catch (error) {
       console.error('Failed to bookmark tab:', error)
+      toast.error('书签添加失败')
     }
   }
+
+  const handleCopyUrl = async (tab: Tab, event: React.MouseEvent) => {
+    event.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(tab.url)
+      toast.success('已复制链接')
+    } catch (error) {
+      console.error('Failed to copy URL:', error)
+      toast.error('复制失败')
+    }
+  }
+
+  const handleCleanDuplicateTabs = async () => {
+    try {
+      const result = await cleanDuplicateTabs.mutateAsync({
+        preserveActiveTab: true,
+        dryRun: false
+      })
+
+      if (result.totalClosed === 0) {
+        toast.info('无重复标签页')
+      } else {
+        toast.success(`已清理 ${result.totalClosed} 个重复标签页`)
+      }
+    } catch (error) {
+      console.error('Failed to clean duplicate tabs:', error)
+      toast.error('清理失败')
+    }
+  }
+
 
   const renderMainContent = () => {
     switch (activeView) {
@@ -103,23 +139,42 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
           <>
             {/* 搜索框 */}
             <div className="px-4 py-1 border-b border-gray-100">
-              <div className="flex items-center justify-between w-full gap-4">
-                <div className="relative flex-grow">
-                  <Search className="absolute z-10 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={16} />
+              <div className="flex items-center justify-between w-full gap-4 py-2">
+                <div className='grid items-center flex-shrink-0 grid-cols-3 gap-2'>
+                  {/* 上一个、下一个以及清理重复按钮 */}
+                  <span title="切换到上一个 tab" className='p-1 transition-all bg-white rounded-full cursor-pointer hover:bg-gray-100 opacity-70 hover:opacity-100' onClick={restoreLastClosedTab.restoreLastClosedTab}>
+                    <Redo2 size={16} className='text-gray-600' />
+                  </span>
+                  <span
+                    title="清理重复 tab"
+                    onClick={handleCleanDuplicateTabs}
+                    className={`p-1 transition-all bg-white rounded-full cursor-pointer hover:bg-gray-100 opacity-70 hover:opacity-100 ${cleanDuplicateTabs.isPending ? 'animate-pulse opacity-50 cursor-not-allowed' : ''
+                      }`}
+                  >
+                    <BrushCleaning size={16} className='text-gray-600' />
+                  </span>
+                </div>
+
+                <div className="relative flex items-center justify-center flex-grow mx-auto text-sm font-medium">
+                  <div className='bg-green-800 rounded-full left-[28px] p-[4px] relative'>
+                    <Search size={16} color='white' />
+                  </div>
                   <input
                     type="text"
                     placeholder="搜索标签页..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full py-3 pl-10 pr-20 text-gray-800 placeholder-gray-500 transition-all duration-200 rounded-lg outline-none bg-gray-50"
+                    className="w-full max-w-[420px] py-1.5 pl-10 text-gray-800 border border-transparent focus:border-gray-100 placeholder-gray-500 transition-all duration-200 rounded-full outline-none bg-gray-50 text-sm"
                   />
 
                 </div>
                 {/* 动画计数器 */}
+                <div className="min-w-[96px] flex justify-end">
                 <AnimatedCounter
                   value={filteredTabs?.length ?? 0}
                   className="flex-shrink-0 text-lg font-black tracking-tight text-gray-800"
-                />
+                  />
+                </div>
               </div>
 
             </div>
@@ -138,9 +193,6 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
                     ? EmptyStateVariants.noSearchResults
                     : EmptyStateVariants.noTabs
                   )}
-                  onClick={() => {
-                    console.log('click tabs:', tabs)
-                  }}
                 />
               ) : (
                 <div className="divide-y divide-gray-100">
@@ -195,6 +247,15 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
                             <ExternalLink size={14} />
                           </button>
 
+                          {/* 复制URL按钮 */}
+                          <button
+                            onClick={(e) => handleCopyUrl(tab, e)}
+                            className="p-1 text-gray-600 rounded hover:bg-gray-200 hover:text-purple-600"
+                            title="复制 URL"
+                          >
+                            <Copy size={14} />
+                          </button>
+
                           {/* 关闭按钮 */}
                           <button
                             onClick={(e) => handleCloseTab(tab.id, e)}
@@ -218,7 +279,7 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
 
   return (
     <div
-      ref={ref} className={cn('w-full h-full flex flex-col bg-white border-t border-gray-200 group overflow-hidden', className)}>
+      ref={ref} className={cn('w-full h-full flex flex-col bg-white border-t border-gray-200 overflow-hidden', className)}>
       {/* 主要内容区域 */}
       <div className="flex flex-col flex-1 min-h-0">
         {renderMainContent()}

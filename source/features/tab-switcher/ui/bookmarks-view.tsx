@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Bookmark, Users, Search, Folder, ExternalLink } from 'lucide-react'
+import { Bookmark, Users, Search, Folder, ExternalLink, Repeat, ArrowLeft, ArrowRight } from 'lucide-react'
 import { sendToBackground } from '@plasmohq/messaging'
 import { Favicon } from '~source/components'
 
@@ -133,13 +133,25 @@ export function BookmarksView({ mode }: BookmarksViewProps) {
 
       {/* 搜索框 */}
       <div className="relative">
+        <div className='grid grid-cols-3 gap-1'>
+          {/* 上一个、下一个以及清理重复按钮 */}
+          <button className='w-full py-2 pl-10 pr-4 text-gray-800 placeholder-gray-500 transition-all duration-200 rounded-lg outline-none bg-gray-50'>
+            <ArrowLeft className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={20} />
+          </button>
+          <button className='w-full py-2 pl-10 pr-4 text-gray-800 placeholder-gray-500 transition-all duration-200 rounded-lg outline-none bg-gray-50'>
+            <ArrowRight className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={20} />
+          </button>
+          <button className='w-full py-2 pl-10 pr-4 text-gray-800 placeholder-gray-500 transition-all duration-200 rounded-lg outline-none bg-gray-50'>
+            <Repeat />
+          </button>
+        </div>
         <Search className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2" size={20} />
         <input
           type="text"
           placeholder="搜索书签..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full py-3 pl-10 pr-4 text-gray-800 placeholder-gray-500 transition-all duration-200 rounded-lg outline-none bg-gray-50"
+          className="w-full py-2 pl-10 pr-4 text-gray-800 placeholder-gray-500 transition-all duration-200 rounded-lg outline-none bg-gray-50"
         />
       </div>
 

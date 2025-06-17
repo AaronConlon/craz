@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { BookmarkSchema, CreateBookmarkSchema } from "../schemas/bookmark"
-import type { Bookmark, CreateBookmarkRequest } from "../schemas/bookmark"
-import { BookmarkService } from "./bookmark"
+import {
+  BookmarkSchema,
+  CreateBookmarkSchema
+} from "../../src/schemas/bookmark"
+import type {
+  Bookmark,
+  CreateBookmarkRequest
+} from "../../src/schemas/bookmark"
+import { BookmarkService } from "../../src/services/bookmark"
 
 // Mock KV namespace
 const mockKV = {

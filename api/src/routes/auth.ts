@@ -3,6 +3,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 
 import type { Env } from "../index"
+import { createJwtMiddleware } from "../middleware/jwt"
 import {
   LoginUserSchema,
   RegisterUserSchema,
@@ -11,7 +12,10 @@ import {
 } from "../schemas/user"
 import { AuthService } from "../services/auth"
 
-export const authRoutes = new Hono<{ Bindings: Env }>()
+const authRoutes = new Hono<{ Bindings: Env }>()
+
+// JWT认证中间件
+const jwtAuth = createJwtMiddleware()
 
 // 健康检查
 authRoutes.get("/health", (c) => {
@@ -96,39 +100,6 @@ authRoutes.post("/login", zValidator("json", LoginUserSchema), async (c) => {
     throw new HTTPException(500, { message: "登录失败" })
   }
 })
-
-// JWT认证中间件
-const jwtAuth = async (c, next) => {
-  const authHeader = c.req.header("Authorization")
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new HTTPException(401, { message: "请提供有效的认证令牌" })
-  }
-
-  const token = authHeader.substring(7) // 移除 "Bearer " 前缀
-  const authService = new AuthService(c.env.DB, c.env.JWT_SECRET)
-
-  try {
-    const payload = await authService.verifyJWT(token)
-
-    if (!payload) {
-      throw new HTTPException(401, { message: "无效的token" })
-    }
-
-    // 检查令牌是否过期
-    if (payload.exp < Math.floor(Date.now() / 1000)) {
-      throw new HTTPException(401, { message: "认证令牌已过期" })
-    }
-
-    // 将用户信息添加到上下文
-    c.set("user", payload)
-    await next()
-  } catch (error) {
-    if (error instanceof HTTPException) throw error
-    console.error("JWT验证失败:", error)
-    throw new HTTPException(401, { message: "认证失败" })
-  }
-}
 
 // 获取当前用户信息
 authRoutes.get("/me", jwtAuth, async (c) => {
@@ -262,35 +233,36 @@ authRoutes.get("/check-email", async (c) => {
   }
 })
 
-// 刷新令牌
+// 刷新令牌 - 使用新的 JWT 服务
 authRoutes.post("/refresh", jwtAuth, async (c) => {
-  const userPayload = c.get("user")
+  const authHeader = c.req.header("Authorization")
+  const oldToken = authHeader?.substring(7) // 移除 "Bearer " 前缀
+
+  if (!oldToken) {
+    throw new HTTPException(401, { message: "请提供有效的认证令牌" })
+  }
+
   const authService = new AuthService(c.env.DB, c.env.JWT_SECRET)
 
   try {
+    const newToken = await authService.refreshJWT(oldToken)
+
+    if (!newToken) {
+      throw new HTTPException(401, { message: "令牌刷新失败" })
+    }
+
+    const userPayload = c.get("user")
     const user = await authService.getUserById(userPayload.userId)
 
     if (!user) {
       throw new HTTPException(404, { message: "用户不存在" })
     }
 
-    // 获取数据库用户信息以生成新的JWT
-    const dbUser = await authService.queryFirst<any>(
-      "SELECT * FROM users WHERE id = ? LIMIT 1",
-      [userPayload.userId]
-    )
-
-    if (!dbUser) {
-      throw new HTTPException(404, { message: "用户不存在" })
-    }
-
-    // 生成新的JWT（这里我们重新调用登录方法来生成新token，但不验证密码）
-    // 实际上我们需要一个专门的 refreshToken 方法
     return c.json({
       success: true,
       data: {
         user,
-        message: "令牌刷新功能需要完善实现"
+        token: newToken
       },
       message: "令牌刷新成功",
       timestamp: new Date().toISOString()
@@ -304,3 +276,4 @@ authRoutes.post("/refresh", jwtAuth, async (c) => {
 
 // 导出JWT认证中间件供其他路由使用
 export { jwtAuth }
+export { authRoutes }

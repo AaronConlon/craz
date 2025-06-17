@@ -48,7 +48,8 @@ export const JwtPayloadSchema = z.object({
   username: z.string(),
   isSponsored: z.boolean(),
   iat: z.number(),
-  exp: z.number()
+  exp: z.number(),
+  nbf: z.number().optional()
 })
 
 // 用户响应 schema（不包含密码）

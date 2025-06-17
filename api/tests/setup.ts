@@ -1,10 +1,14 @@
+;
 /**
  * 测试环境初始化设置
  */
 
-import { afterAll, beforeAll } from "vitest"
+import { afterAll, beforeAll } from "vitest";
 
-import { waitForTestEnvironment } from "./utils/test-env"
+
+
+import { waitForTestEnvironment } from "./utils/test-env";
+
 
 // 确保全局fetch可用
 if (!global.fetch) {
@@ -25,7 +29,7 @@ beforeAll(async () => {
   // 测试fetch是否可用
   console.log("🔍 测试fetch可用性...")
   try {
-    const testResponse = await fetch("http://localhost:8787/auth/health")
+    const testResponse = await fetch("http://localhost:8787/api/auth/health")
     console.log(`✅ fetch测试成功: ${testResponse.status}`)
   } catch (error) {
     console.error("❌ fetch测试失败:", error)
