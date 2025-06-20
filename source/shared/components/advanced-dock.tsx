@@ -2,8 +2,9 @@ import { FcSettings, FcViewDetails, FcBookmark, FcConferenceCall } from 'react-i
 import { Favicon } from './favicon'
 import { useFaviconBookmarks, type FaviconBookmark } from '../hooks/use-chrome-storage'
 import { cn } from '../utils'
+import { User } from 'lucide-react'
 
-export type ViewMode = 'tabs' | 'user-bookmarks' | 'team-bookmarks' | 'settings'
+export type ViewMode = 'tabs' | 'user-bookmarks' | 'team-bookmarks' | 'settings' | 'profile'
 
 interface AdvancedDockProps {
   className?: string
@@ -37,6 +38,12 @@ export function AdvancedDock({
       onClick: () => onViewChange('settings')
     },
     {
+      id: 'profile' as ViewMode,
+      label: '个人资料',
+      icon: <User size={24} />,
+      onClick: () => onViewChange('profile')
+    },
+    {
       id: 'tabs' as ViewMode,
       label: '标签页',
       icon: <FcViewDetails size={24} />,
@@ -66,9 +73,9 @@ export function AdvancedDock({
 
   return (
     <div className={cn("flex justify-center", className)}>
-      <div className="flex items-center gap-3 px-4 py-2 border shadow-lg rounded-2xl backdrop-blur-md bg-gray-100/95 border-gray-200/50">
+      <div className="flex gap-3 items-center px-4 py-2 bg-white rounded-2xl border shadow-lg backdrop-blur-md">
         {/* 左侧功能菜单 */}
-        <div className="flex items-center gap-1">
+        <div className="flex gap-1 items-center">
           {leftMenuItems.map((item) => (
             <DockMenuItem
               key={item.id}
@@ -79,10 +86,10 @@ export function AdvancedDock({
         </div>
 
         {/* 分隔线 */}
-        <div className="w-px h-6 mx-2 bg-gray-300"></div>
+        <div className="mx-2 w-px h-6 bg-gray-300"></div>
 
         {/* 右侧固定 favicon */}
-        <div className="flex items-center gap-1">
+        <div className="flex gap-1 items-center">
           {/* {loading ? (
             // 加载状态
             Array.from({ length: 5 }).map((_, index) => (
@@ -132,15 +139,15 @@ function DockMenuItem({ item, active }: DockMenuItemProps) {
         {item.icon}
 
         {/* 数量标记 */}
-        {typeof item.count === 'number' && item.count > 0 && (
+        {/* {typeof item.count === 'number' && item.count > 0 && (
           <div className="absolute -top-2 -right-2 min-w-[16px] h-[16px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1 shadow-sm">
             {item.count > 99 ? '99+' : item.count}
           </div>
-        )}
+        )} */}
 
         {/* 活动指示器 */}
         {active && (
-          <div className="absolute w-1 h-1 transform -translate-x-1/2 bg-gray-600 rounded-full -bottom-4 left-1/2" />
+          <div className="absolute -bottom-4 left-1/2 w-1 h-1 bg-gray-600 rounded-full transform -translate-x-1/2" />
         )}
       </div>
 
@@ -157,7 +164,7 @@ function FaviconDockItem({ bookmark, onClick }: FaviconDockItemProps) {
   return (
     <button
       onClick={onClick}
-      className="relative flex items-center justify-center p-2 transition-all duration-200 rounded-xl group hover:bg-white/60 hover:scale-105 hover:shadow-md"
+      className="flex relative justify-center items-center p-2 rounded-xl transition-all duration-200 group hover:bg-white/60 hover:scale-105 hover:shadow-md"
       title={bookmark.title}
     >
       <Favicon
@@ -168,7 +175,7 @@ function FaviconDockItem({ bookmark, onClick }: FaviconDockItemProps) {
       />
 
       {/* 悬停提示 */}
-      <div className="absolute px-2 py-1 text-xs text-white transition-opacity duration-200 transform -translate-x-1/2 bg-gray-800 rounded opacity-0 pointer-events-none -top-10 left-1/2 group-hover:opacity-100 whitespace-nowrap">
+      <div className="absolute -top-10 left-1/2 px-2 py-1 text-xs text-white whitespace-nowrap bg-gray-800 rounded opacity-0 transition-opacity duration-200 transform -translate-x-1/2 pointer-events-none group-hover:opacity-100">
         {bookmark.title}
       </div>
     </button>

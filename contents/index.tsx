@@ -106,7 +106,7 @@ export default function ContentUI() {
               <div
                 {...eventStoppers.keyboard}
                 onClick={eventStoppers.stop}
-                className="glass-container rounded-2xl max-w-4xl w-full h-[520px] 2xl:h-[720px] max-h-[80vh] overflow-hidden z-[99999999]"
+                className="rounded-2xl max-w-4xl w-full h-[520px] 2xl:h-[720px] max-h-[80vh] z-[99999999] relative"
               >
                 <TabSwitcher onClose={() => setOpened(false)} />
               </div>

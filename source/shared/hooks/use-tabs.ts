@@ -1,15 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import {
-  closeTab,
-  getTabs,
-  sendPing,
-  switchToTab
-} from "~/source/shared/api/messages"
 import type { CloseTabRequest } from "~background/messages/close-tab"
 import type { GetTabsRequest } from "~background/messages/get-tabs"
 import type { PingRequest } from "~background/messages/ping"
 import type { SwitchTabRequest } from "~background/messages/switch-tab"
+import { closeTab, getTabs, switchToTab } from "~source/shared/api/messages"
 
 /**
  * 查询标签页列表
@@ -50,15 +45,6 @@ export const useCloseTab = () => {
       // 关闭成功后刷新标签页列表
       queryClient.invalidateQueries({ queryKey: ["tabs"] })
     }
-  })
-}
-
-/**
- * 发送ping消息的mutation
- */
-export const usePing = () => {
-  return useMutation({
-    mutationFn: (params: PingRequest) => sendPing(params)
   })
 }
 

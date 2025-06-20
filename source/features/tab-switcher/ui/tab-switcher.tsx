@@ -3,13 +3,15 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { AnimatedCounter, EmptyState, EmptyStateVariants, TabFavicon } from '~source/components'
 import { AdvancedDock, type ViewMode } from '~source/shared/components/advanced-dock'
-import { cn } from '~source/shared/utils'
-import { useBookmarkCount, useDebounce, useScrollDetection } from '../../../shared/hooks'
-import { useAllTabs, useCloseTab, useCreateBookmark, useSwitchTab, useCleanDuplicateTabs } from '../model/use-tab-switcher'
+import { cn, type VisitRecord } from '~source/shared/utils'
+import { useBookmarkCount, useDebounce } from '../../../shared/hooks'
+import { useAllTabs, useCleanDuplicateTabs, useCloseTab, useCreateBookmark, useDefaultHistoryTop7, useSwitchTab } from '../model/use-tab-switcher'
+import { useRestoreLastClosedTab } from '../model/useRestoreLastClosedTab'
 import type { Tab } from '../types'
 import { BookmarksView } from './bookmarks-view'
+import { ProfileView } from './profile-view'
 import { SettingsView } from './settings-view'
-import { useRestoreLastClosedTab } from '../model/useRestoreLastClosedTab'
+import { createPortal } from 'react-dom'
 
 interface TabSwitcherProps {
   className?: string
@@ -18,11 +20,16 @@ interface TabSwitcherProps {
 
 export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeView, setActiveView] = useState<ViewMode>('tabs')
+  const [activeView, setActiveView] = useState<ViewMode>('profile')
   const debouncedQuery = useDebounce(searchQuery, 200)
   const ref = useRef<HTMLDivElement>(null)
 
   const { data: tabs } = useAllTabs()
+  const { data: top7Tabs } = useDefaultHistoryTop7()
+
+  console.log('all tabs:', tabs)
+  console.log('top7 tabs:', top7Tabs)
+
   // const { data: bookmarks } = useBookmarks({ pageSize: 50 })
   const { userBookmarkCount, teamBookmarkCount } = useBookmarkCount()
 
@@ -33,7 +40,6 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
   const restoreLastClosedTab = useRestoreLastClosedTab()
 
   // 滚动检测
-  const [scrollRef, isScrolling] = useScrollDetection<HTMLDivElement>(1500)
 
   // 监听 ESC 键关闭 - 使用原生事件监听器确保非被动监听器
   useEffect(() => {
@@ -121,11 +127,13 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
     }
   }
 
-
-  const renderMainContent = () => {
+  const renderMainContent = (tabs: Tab[] | VisitRecord[]) => {
     switch (activeView) {
       case 'settings':
         return <SettingsView />
+
+      case 'profile':
+        return <ProfileView />
 
       case 'user-bookmarks':
         return <BookmarksView mode="user" />
@@ -139,10 +147,10 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
           <>
             {/* 搜索框 */}
             <div className="px-4 py-1 border-b border-gray-100">
-              <div className="flex items-center justify-between w-full gap-4 py-2">
-                <div className='grid items-center flex-shrink-0 grid-cols-3 gap-2'>
+              <div className="flex gap-4 justify-between items-center py-2 w-full">
+                <div className='grid flex-shrink-0 grid-cols-3 gap-2 items-center'>
                   {/* 上一个、下一个以及清理重复按钮 */}
-                  <span title="切换到上一个 tab" className='p-1 transition-all bg-white rounded-full cursor-pointer hover:bg-gray-100 opacity-70 hover:opacity-100' onClick={restoreLastClosedTab.restoreLastClosedTab}>
+                  <span title="切换到上一个 tab" className='p-1 bg-white rounded-full opacity-70 transition-all cursor-pointer hover:bg-gray-100 hover:opacity-100' onClick={restoreLastClosedTab.restoreLastClosedTab}>
                     <Redo2 size={16} className='text-gray-600' />
                   </span>
                   <span
@@ -155,7 +163,7 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
                   </span>
                 </div>
 
-                <div className="relative flex items-center justify-center flex-grow mx-auto text-sm font-medium">
+                <div className="flex relative flex-grow justify-center items-center mx-auto text-sm font-medium">
                   <div className='bg-green-800 rounded-full left-[28px] p-[4px] relative'>
                     <Search size={16} color='white' />
                   </div>
@@ -170,9 +178,9 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
                 </div>
                 {/* 动画计数器 */}
                 <div className="min-w-[96px] flex justify-end">
-                <AnimatedCounter
-                  value={filteredTabs?.length ?? 0}
-                  className="flex-shrink-0 text-lg font-black tracking-tight text-gray-800"
+                  <AnimatedCounter
+                    value={tabs?.length ?? 0}
+                    className="flex-shrink-0 text-lg font-black tracking-tight text-gray-800"
                   />
                 </div>
               </div>
@@ -181,13 +189,11 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
 
             {/* 标签页列表 */}
             <div
-              ref={scrollRef}
               className={cn(
-                "flex-1 overflow-y-auto scrollbar-macos-thin min-h-[320px]",
-                isScrolling && "scrolling"
+                "overflow-y-auto flex-1 scrollbar-macos-thin min-h-[320px]",
               )}
             >
-              {filteredTabs.length === 0 ? (
+              {tabs.length === 0 ? (
                 <EmptyState
                   {...(searchQuery
                     ? EmptyStateVariants.noSearchResults
@@ -196,20 +202,20 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
                 />
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {filteredTabs.map((tab) => (
+                    {tabs.map((tab) => (
                     <div
                       key={tab.id}
                       onClick={() => handleTabClick(tab)}
                       className="p-3 transition-colors cursor-pointer group hover:bg-gray-50"
                     >
-                      <div className="flex items-center justify-between">
+                        <div className="flex justify-between items-center">
                         {/* 标签页信息 */}
-                        <div className="flex items-center flex-1 min-w-0 space-x-3">
+                          <div className="flex flex-1 items-center space-x-3 min-w-0">
                           {/* favicon */}
                           <TabFavicon
                             tab={tab}
-                            size={16}
-                            className="flex-shrink-0"
+                              size={24}
+                              className="flex-shrink-0 rounded-full"
                           />
 
                           {/* 标题和URL */}
@@ -224,7 +230,7 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
                         </div>
 
                         {/* 操作按钮 */}
-                        <div className="flex items-center space-x-1 transition-opacity opacity-0 group-hover:opacity-100">
+                          <div className="flex items-center space-x-1 opacity-0 transition-opacity group-hover:opacity-100">
                           {/* 书签按钮 */}
                           <button
                             onClick={(e) => handleBookmarkTab(tab, e)}
@@ -278,22 +284,22 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
   }
 
   return (
-    <div
-      ref={ref} className={cn('w-full h-full flex flex-col bg-white border-t border-gray-200 overflow-hidden', className)}>
-      {/* 主要内容区域 */}
-      <div className="flex flex-col flex-1 min-h-0">
-        {renderMainContent()}
+    <>
+      <div
+        ref={ref} className={cn('flex overflow-hidden flex-col w-full h-full bg-white border-t border-gray-200', className)}>
+        {/* 主要内容区域 */}
+        {renderMainContent(searchQuery?.trim()?.length ? filteredTabs : top7Tabs.data)}
       </div>
-
       {/* 高级 Dock */}
       <AdvancedDock
-        className='absolute inset-x-0 mx-auto transition-all duration-300 bottom-2 group-hover:bottom-2 w-max'
-          activeView={activeView}
-          onViewChange={setActiveView}
-          tabCount={tabs?.length ?? 0}
-          userBookmarkCount={userBookmarkCount}
-          teamBookmarkCount={teamBookmarkCount}
+        className='absolute inset-x-0 bottom-[-68px] mx-auto w-max transition-all duration-300'
+        activeView={activeView}
+        onViewChange={setActiveView}
+        tabCount={tabs?.length ?? 0}
+        userBookmarkCount={userBookmarkCount}
+        teamBookmarkCount={teamBookmarkCount}
       />
-    </div>
+    </>
+
   )
 } 

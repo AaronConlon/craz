@@ -1,15 +1,23 @@
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery
+} from "@tanstack/react-query"
 
+import { sendToBackground } from "@plasmohq/messaging"
 
+import type { GetDefaultHistoryTop7Response } from "~background/messages/get-default-history-top7"
+import type { VisitRecord } from "~source/shared/utils"
 
-import { sendToBackground } from "@plasmohq/messaging";
-
-
-
-import { BookmarksApiService } from "../../../shared/api/bookmarks";
-import { ChromeApiService } from "../../../shared/api/chrome";
-import type { Bookmark, CreateBookmarkRequest, Tab, UpdateBookmarkRequest } from "../types";
-
+import { BookmarksApiService } from "../../../shared/api/bookmarks"
+import { ChromeApiService } from "../../../shared/api/chrome"
+import type { PaginatedResponse } from "../../../shared/types"
+import type {
+  Bookmark,
+  CreateBookmarkRequest,
+  UpdateBookmarkRequest
+} from "../types"
 
 // Query Keys
 export const TAB_QUERY_KEYS = {
@@ -36,27 +44,58 @@ export const BOOKMARK_QUERY_KEYS = {
 
 // 获取所有标签页
 export function useAllTabs() {
-  return useQuery({
+  return useQuery<chrome.tabs.Tab[]>({
     queryKey: ["tabs", "all"],
     queryFn: async () => {
-      console.log("[TabSwitcher] 开始获取所有标签页...")
-
       const response = await sendToBackground({
-        name: "get-tabs",
+        name: "get-tabs" as const,
         body: {}
       })
 
       if (!response.success) {
-        throw new Error(response.error || "获取标签页失败")
+        return []
       }
-
-      console.log(`[TabSwitcher] 获取到 ${response.tabs.length} 个标签页`)
-
       return response.tabs
     },
     staleTime: 1000, // 1秒内不重新获取
     refetchInterval: 5000, // 每5秒自动刷新
     refetchOnWindowFocus: true
+  })
+}
+
+// 获取默认搜索标签页
+export function useDefaultSearchTabs() {
+  const now = Date.now()
+  console.log("start:", now)
+  return useQuery<any>({
+    queryKey: ["tabs", "default-search"],
+    queryFn: async () => {
+      const response = await sendToBackground({
+        name: "get-default-search-tabs" as const,
+        body: {}
+      })
+      console.log("end:", Date.now(), `cost: ${Date.now() - now}ms`)
+      return response
+    }
+  })
+}
+
+// 获取本地历史访问次数前7的数据
+export function useDefaultHistoryTop7(excludeCurrentTab: boolean = true) {
+  const now = Date.now()
+  console.log("start:", now)
+  return useSuspenseQuery<GetDefaultHistoryTop7Response>({
+    queryKey: ["history", "top7", excludeCurrentTab],
+    queryFn: async () => {
+      const response = await sendToBackground({
+        name: "get-default-history-top7" as const,
+        body: { excludeCurrentTab }
+      })
+      console.log(`[useDefaultHistoryTop7] 获取到 ${response.total} 条历史记录`)
+      console.log("end:", Date.now(), `cost: ${Date.now() - now}ms`)
+      return response
+    },
+    refetchOnWindowFocus: false
   })
 }
 
@@ -73,12 +112,12 @@ export function useActiveTab() {
 export function useSwitchTab() {
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useMutation<{ success: boolean; error?: string }, Error, number>({
     mutationFn: async (tabId: number) => {
       console.log("[TabSwitcher] 切换到标签页:", tabId)
 
       const response = await sendToBackground({
-        name: "switch-tab",
+        name: "switch-tab" as const,
         body: { tabId }
       })
 
@@ -103,12 +142,12 @@ export function useSwitchTab() {
 export function useCloseTab() {
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useMutation<{ success: boolean; error?: string }, Error, number>({
     mutationFn: async (tabId: number) => {
       console.log("[TabSwitcher] 关闭标签页:", tabId)
 
       const response = await sendToBackground({
-        name: "close-tab",
+        name: "close-tab" as const,
         body: { tabId }
       })
 
@@ -133,15 +172,33 @@ export function useCloseTab() {
 export function useCleanDuplicateTabs() {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: async (options?: {
-      preserveActiveTab?: boolean
-      dryRun?: boolean
-    }) => {
+  interface CleanDuplicateTabsOptions {
+    preserveActiveTab?: boolean
+    dryRun?: boolean
+  }
+
+  interface CleanDuplicateTabsResponse {
+    success: boolean
+    totalClosed: number
+    duplicateGroups: Array<{
+      url: string
+      tabs: chrome.tabs.Tab[]
+      keptTab: chrome.tabs.Tab
+      closedTabs: chrome.tabs.Tab[]
+    }>
+    error?: string
+  }
+
+  return useMutation<
+    CleanDuplicateTabsResponse,
+    Error,
+    CleanDuplicateTabsOptions | undefined
+  >({
+    mutationFn: async (options?: CleanDuplicateTabsOptions) => {
       console.log("[TabSwitcher] 开始清理重复标签页:", options)
 
       const response = await sendToBackground({
-        name: "clean-duplicate-tabs",
+        name: "clean-duplicate-tabs" as const,
         body: options || {}
       })
 
@@ -177,7 +234,7 @@ export function useBookmarks(params?: {
   search?: string
   tags?: string[]
 }) {
-  return useQuery({
+  return useQuery<PaginatedResponse<Bookmark>>({
     queryKey: BOOKMARK_QUERY_KEYS.list(params),
     queryFn: () => BookmarksApiService.getBookmarks(params),
     staleTime: 1000 * 60 * 5 // 5分钟
@@ -186,7 +243,7 @@ export function useBookmarks(params?: {
 
 // 获取单个书签
 export function useBookmark(id: string) {
-  return useQuery({
+  return useQuery<Bookmark>({
     queryKey: BOOKMARK_QUERY_KEYS.detail(id),
     queryFn: () => BookmarksApiService.getBookmark(id),
     enabled: !!id
@@ -197,9 +254,17 @@ export function useBookmark(id: string) {
 export function useCreateBookmark() {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: (data: CreateBookmarkRequest) =>
-      BookmarksApiService.createBookmark(data),
+  return useMutation<Bookmark, Error, CreateBookmarkRequest>({
+    mutationFn: async (data: CreateBookmarkRequest) => {
+      const response = await sendToBackground({
+        name: "cloud-bookmark-action",
+        body: {
+          action: "createBookmark",
+          data
+        }
+      })
+      return response.data as Bookmark
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: BOOKMARK_QUERY_KEYS.all })
     }
@@ -210,7 +275,11 @@ export function useCreateBookmark() {
 export function useUpdateBookmark() {
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useMutation<
+    Bookmark,
+    Error,
+    { id: string; data: UpdateBookmarkRequest }
+  >({
     mutationFn: ({ id, data }: { id: string; data: UpdateBookmarkRequest }) =>
       BookmarksApiService.updateBookmark(id, data),
     onSuccess: () => {
@@ -223,7 +292,7 @@ export function useUpdateBookmark() {
 export function useDeleteBookmark() {
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useMutation<void, Error, string>({
     mutationFn: (id: string) => BookmarksApiService.deleteBookmark(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: BOOKMARK_QUERY_KEYS.all })
@@ -239,7 +308,7 @@ export function useSearchBookmarks(
     limit?: number
   }
 ) {
-  return useQuery({
+  return useQuery<Bookmark[]>({
     queryKey: [...BOOKMARK_QUERY_KEYS.all, "search", query, options],
     queryFn: () => BookmarksApiService.searchBookmarks(query, options),
     enabled: !!query.trim(),
@@ -249,7 +318,7 @@ export function useSearchBookmarks(
 
 // 获取所有标签
 export function useBookmarkTags() {
-  return useQuery({
+  return useQuery<string[]>({
     queryKey: BOOKMARK_QUERY_KEYS.tags(),
     queryFn: BookmarksApiService.getTags,
     staleTime: 1000 * 60 * 10 // 10分钟
@@ -258,7 +327,7 @@ export function useBookmarkTags() {
 
 // 检查书签是否存在
 export function useCheckBookmarkExists(url: string) {
-  return useQuery({
+  return useQuery<boolean>({
     queryKey: [...BOOKMARK_QUERY_KEYS.all, "check", url],
     queryFn: () => BookmarksApiService.checkBookmarkExists(url),
     enabled: !!url,

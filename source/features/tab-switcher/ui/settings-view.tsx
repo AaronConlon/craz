@@ -1,20 +1,17 @@
-import { Suspense, Component } from 'react'
-import type { ReactNode } from 'react'
-import { Settings } from 'lucide-react'
 import {
-  useSuspenseUserSettings,
-  useUpdateUserSettings
-} from '~source/shared/hooks'
-import {
-  ThemeSettings,
-  LanguageSettings,
-  FontSizeSettings,
-  AuthSection,
-  SettingsLoadingSkeleton,
-  SettingsErrorFallback
-} from '~source/shared/components/settings'
+  AlertCircle,
+  Check,
+  RefreshCw,
+  Settings
+} from 'lucide-react'
+import { Component, Suspense, type ReactNode } from 'react'
 
-// 简单的错误边界组件
+import { useUserProfile } from '~source/shared/hooks/use-user-profile'
+import type { Theme } from '~source/shared/types/settings'
+import { THEME_COLORS } from '~source/shared/types/settings'
+import { cn } from '~source/shared/utils'
+
+// 错误边界组件
 class SettingsErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean; error?: Error }
@@ -35,18 +32,45 @@ class SettingsErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <SettingsErrorFallback
-          error={this.state.error}
-          resetErrorBoundary={() => {
-            this.setState({ hasError: false, error: undefined })
-            window.location.reload()
-          }}
-        />
+        <div className="flex flex-col justify-center items-center h-64 text-center">
+          <AlertCircle className="mb-4 w-12 h-12 text-red-500" />
+          <h3 className="mb-2 text-lg font-semibold text-gray-800">设置加载失败</h3>
+          <p className="mb-4 text-sm text-gray-600">
+            {this.state.error?.message || '未知错误'}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: undefined })
+              window.location.reload()
+            }}
+            className="px-4 py-2 text-white bg-blue-600 rounded-lg transition-colors hover:bg-blue-700"
+          >
+            重新加载
+          </button>
+        </div>
       )
     }
 
     return this.props.children
   }
+}
+
+// 加载状态组件
+function SettingsLoadingSkeleton() {
+  return (
+    <div className="p-6 space-y-8">
+      <div className="flex gap-3 items-center">
+        <div className="w-5 h-5 bg-gray-200 rounded animate-pulse" />
+        <div className="w-20 h-5 bg-gray-200 rounded animate-pulse" />
+      </div>
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="space-y-4">
+          <div className="w-32 h-4 bg-gray-200 rounded animate-pulse" />
+          <div className="w-full h-10 bg-gray-200 rounded animate-pulse" />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function SettingsView() {
@@ -60,164 +84,312 @@ export function SettingsView() {
 }
 
 function SettingsContent() {
-  const { data } = useSuspenseUserSettings()
-  const updateSettings = useUpdateUserSettings()
+  const {
+    settings,
+    updateSettings,
+    isLoading,
+    isFetching
+  } = useUserProfile()
 
-  console.log('Settings data:', data)
+  const handleUpdateSetting = <K extends keyof typeof settings>(
+    key: K,
+    value: typeof settings[K]
+  ) => {
+    updateSettings.mutate({ [key]: value })
+  }
+
+  if (isLoading) {
+    return <SettingsLoadingSkeleton />
+  }
 
   return (
-    <div className="pb-48 overflow-y-auto scrollbar-macos-thin">
-      {/* 设置标题 */}
-      <div className="sticky top-0 z-10 flex items-center gap-3 p-4 pb-0 bg-white">
-        <Settings className="text-gray-700" size={24} />
-        <h1 className="text-xl font-semibold text-gray-800">设置</h1>
-        {data.isDefault && (
-          <span className="px-2 py-1 text-xs text-blue-600 bg-blue-100 rounded-full">
-            首次设置
-          </span>
-        )}
+    <div className="overflow-y-auto h-full bg-gray-50 scrollbar-macos-thin">
+      {/* 标题栏 */}
+      <div className="sticky top-0 z-10 border-b border-gray-200 backdrop-blur-sm bg-white/80">
+        <div className="flex justify-between items-center px-6 py-4">
+          <div className="flex gap-3 items-center">
+            <Settings className="text-gray-700" size={20} />
+            <h1 className="text-lg font-semibold text-gray-900">外观</h1>
+          </div>
+
+          {isFetching && (
+            <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
+          )}
+        </div>
+        <p className="px-6 pb-4 text-sm text-gray-600">
+          更改 Craz 在浏览器中的外观和感觉。
+        </p>
       </div>
 
-      {/* 欢迎信息 */}
-      {data.isDefault && (
-        <div className="p-4 m-4 border border-blue-200 rounded-lg bg-blue-50">
-          <h2 className="mb-2 text-lg font-medium text-blue-800">
-            🎉 欢迎使用 Craz！
-          </h2>
-          <p className="text-sm text-blue-700">
-            我们已经根据您的浏览器语言设置了默认配置，您可以在下方进行个性化调整
-          </p>
-        </div>
-      )}
+      <div className="px-6 py-6 space-y-8">
+        {/* 主题色设置 */}
+        <section>
+          <div className="mb-4">
+            <h3 className="mb-1 text-sm font-medium text-gray-900">主题色</h3>
+            <p className="text-xs text-gray-600">更新您的仪表板为您的品牌颜色。</p>
+          </div>
 
-      {/* 主题设置 */}
-      <ThemeSettings
-        currentTheme={data.settings.theme}
-        onThemeChange={(theme) => {
-          console.log('Changing theme to:', theme)
-          updateSettings.mutate({ theme })
-        }}
-      />
-
-      {/* 分隔线 */}
-      <div className="mx-4 border-t border-gray-200" />
-
-      {/* 语言设置 */}
-      <LanguageSettings
-        currentLanguage={data.settings.language}
-        onLanguageChange={(language) => {
-          console.log('Changing language to:', language)
-          updateSettings.mutate({ language })
-        }}
-      />
-
-      {/* 分隔线 */}
-      <div className="mx-4 border-t border-gray-200" />
-
-      {/* 字体大小设置 */}
-      <FontSizeSettings
-        currentFontSize={data.settings.fontSize}
-        onFontSizeChange={(fontSize) => {
-          console.log('Changing font size to:', fontSize)
-          updateSettings.mutate({ fontSize })
-        }}
-      />
-
-      {/* 分隔线 */}
-      <div className="mx-4 border-t border-gray-200" />
-
-      {/* 账户状态 */}
-      <AuthSection authStatus={data.authStatus} />
-
-      {/* 高级设置 */}
-      <div className="p-4">
-        <h3 className="flex items-center gap-3 mb-4 text-lg font-semibold text-gray-800">
-          <Settings className="text-gray-700" size={20} />
-          高级设置
-        </h3>
-
-        <div className="space-y-3">
-          <label className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-            <div>
-              <span className="font-medium text-gray-800">启用键盘快捷键</span>
-              <p className="text-sm text-gray-600">使用 Cmd+Shift+T 快速打开扩展</p>
+          <div className="flex gap-3 items-center">
+            {/* 预设颜色 */}
+            <div className="flex gap-2">
+              {Object.entries(THEME_COLORS).map(([theme, color]) => (
+                <button
+                  key={theme}
+                  onClick={() => handleUpdateSetting('theme', theme as Theme)}
+                  className={cn(
+                    "w-7 h-7 rounded-full border-2 transition-all hover:scale-110",
+                    settings.theme === theme
+                      ? "border-gray-400 ring-2 ring-blue-500 ring-offset-2"
+                      : "border-gray-200 hover:border-gray-300"
+                  )}
+                  style={{ backgroundColor: color }}
+                  title={theme}
+                />
+              ))}
             </div>
-            <input
-              type="checkbox"
-              defaultChecked
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-          </label>
 
-          <label className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-            <div>
-              <span className="font-medium text-gray-800">显示标签页预览</span>
-              <p className="text-sm text-gray-600">鼠标悬停时显示标签页缩略图</p>
+            {/* 自定义颜色 */}
+            <div className="flex gap-2 items-center ml-4">
+              <span className="text-xs font-medium text-gray-700">自定义</span>
+              <div className="flex gap-1 items-center">
+                <span className="text-xs text-gray-500">#</span>
+                <input
+                  type="text"
+                  placeholder="F5F5F5"
+                  className="px-2 py-1 w-20 text-xs bg-white rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
             </div>
-            <input
-              type="checkbox"
-              defaultChecked
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-          </label>
+          </div>
+        </section>
 
-          <label className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
-            <div>
-              <span className="font-medium text-gray-800">自动同步设置</span>
-              <p className="text-sm text-gray-600">登录后自动同步到云端</p>
+        {/* 界面主题 */}
+        <section>
+          <div className="mb-4">
+            <h3 className="mb-1 text-sm font-medium text-gray-900">界面主题</h3>
+            <p className="text-xs text-gray-600">选择或自定义您的 UI 主题。</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {/* 系统偏好 */}
+            <div
+              className={cn(
+                "relative p-3 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
+                settings.theme === 'blue' ? "border-blue-500" : "border-gray-200"
+              )}
+              onClick={() => handleUpdateSetting('theme', 'blue')}
+            >
+              <div className="mb-3">
+                <div className="overflow-hidden w-full h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded border">
+                  <div className="flex gap-1 items-center p-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-red-400 rounded-full" />
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                      <div className="w-2 h-2 bg-green-400 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="px-2 space-y-1">
+                    <div className="flex gap-2 items-center">
+                      <div className="w-3 h-1 bg-blue-500 rounded" />
+                      <div className="flex-1 h-1 bg-gray-300 rounded" />
+                    </div>
+                    <div className="w-full h-6 bg-gray-800 rounded" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 items-center">
+                <div className={cn(
+                  "w-4 h-4 border-2 rounded-full flex items-center justify-center",
+                  settings.theme === 'blue' ? "border-blue-500 bg-blue-500" : "border-gray-300"
+                )}>
+                  {settings.theme === 'blue' && (
+                    <Check className="w-2 h-2 text-white" />
+                  )}
+                </div>
+                <span className="text-xs font-medium text-gray-900">系统偏好</span>
+              </div>
             </div>
-            <input
-              type="checkbox"
-              defaultChecked={data.authStatus.isLoggedIn}
-              disabled={!data.authStatus.isLoggedIn}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
-            />
-          </label>
+
+            {/* 浅色模式 */}
+            <div
+              className={cn(
+                "relative p-3 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
+                settings.theme === 'green' ? "border-blue-500" : "border-gray-200"
+              )}
+              onClick={() => handleUpdateSetting('theme', 'green')}
+            >
+              <div className="mb-3">
+                <div className="overflow-hidden w-full h-16 bg-white rounded border">
+                  <div className="flex gap-1 items-center p-2 bg-gray-50">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-red-400 rounded-full" />
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                      <div className="w-2 h-2 bg-green-400 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="px-2 py-1 space-y-1">
+                    <div className="flex gap-2 items-center">
+                      <div className="w-3 h-1 bg-blue-500 rounded" />
+                      <div className="flex-1 h-1 bg-gray-200 rounded" />
+                    </div>
+                    <div className="w-full h-4 bg-gray-100 rounded" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 items-center">
+                <div className={cn(
+                  "w-4 h-4 border-2 rounded-full flex items-center justify-center",
+                  settings.theme === 'green' ? "border-blue-500 bg-blue-500" : "border-gray-300"
+                )}>
+                  {settings.theme === 'green' && (
+                    <Check className="w-2 h-2 text-white" />
+                  )}
+                </div>
+                <span className="text-xs font-medium text-gray-900">浅色</span>
+              </div>
+            </div>
+
+            {/* 深色模式 */}
+            <div
+              className={cn(
+                "relative p-3 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
+                settings.theme === 'purple' ? "border-blue-500" : "border-gray-200"
+              )}
+              onClick={() => handleUpdateSetting('theme', 'purple')}
+            >
+              <div className="mb-3">
+                <div className="overflow-hidden w-full h-16 bg-gray-900 rounded border">
+                  <div className="flex gap-1 items-center p-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-red-400 rounded-full" />
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                      <div className="w-2 h-2 bg-green-400 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="px-2 py-1 space-y-1">
+                    <div className="flex gap-2 items-center">
+                      <div className="w-3 h-1 bg-blue-400 rounded" />
+                      <div className="flex-1 h-1 bg-gray-600 rounded" />
+                    </div>
+                    <div className="w-full h-4 bg-gray-700 rounded" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2 items-center">
+                <div className={cn(
+                  "w-4 h-4 border-2 rounded-full flex items-center justify-center",
+                  settings.theme === 'purple' ? "border-blue-500 bg-blue-500" : "border-gray-300"
+                )}>
+                  {settings.theme === 'purple' && (
+                    <Check className="w-2 h-2 text-white" />
+                  )}
+                </div>
+                <span className="text-xs font-medium text-gray-900">深色</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 功能设置 */}
+        <section className="space-y-4">
+          {/* 分组设置 */}
+          <div className="flex justify-between items-center py-2">
+            <div className="flex gap-3 items-center">
+              <div className={cn(
+                "w-6 h-3 bg-blue-500 rounded-full p-0.5 cursor-pointer transition-colors",
+                "flex items-center"
+              )}>
+                <div className="ml-auto w-2 h-2 bg-white rounded-full" />
+              </div>
+              <span className="text-sm font-medium text-gray-900">分组</span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-gray-600">按状态</span>
+              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* 排序设置 */}
+          <div className="flex justify-between items-center py-2">
+            <div className="flex gap-3 items-center">
+              <div className={cn(
+                "w-6 h-3 bg-blue-500 rounded-full p-0.5 cursor-pointer transition-colors",
+                "flex items-center"
+              )}>
+                <div className="ml-auto w-2 h-2 bg-white rounded-full" />
+              </div>
+              <span className="text-sm font-medium text-gray-900">排序</span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-gray-600">最后创建</span>
+              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
+          {/* 显示子项目 */}
+          <div className="flex justify-between items-center py-2">
+            <div className="flex gap-3 items-center">
+              <div className={cn(
+                "w-6 h-3 bg-blue-500 rounded-full p-0.5 cursor-pointer transition-colors",
+                "flex items-center"
+              )}>
+                <div className="ml-auto w-2 h-2 bg-white rounded-full" />
+              </div>
+              <span className="text-sm font-medium text-gray-900">显示子项目</span>
+            </div>
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-gray-600">所有子项目</span>
+              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </section>
+
+
+      </div>
+
+      {/* 底部操作按钮 */}
+      <div className="sticky bottom-0 p-6 border-t border-gray-200 backdrop-blur-sm bg-white/80">
+        <div className="flex justify-between items-center">
+          <button
+            className="text-sm text-gray-600 transition-colors hover:text-gray-800"
+            onClick={() => {
+              // 重置为默认设置
+              handleUpdateSetting('theme', 'blue')
+              handleUpdateSetting('language', 'zh-CN')
+              handleUpdateSetting('fontSize', 'medium')
+            }}
+          >
+            重置为默认
+          </button>
+          <div className="flex gap-3">
+            <button className="px-4 py-2 text-sm text-gray-600 rounded-md border border-gray-300 transition-colors hover:bg-gray-50">
+              取消
+            </button>
+            <button
+              className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md transition-colors hover:bg-blue-700"
+              disabled={updateSettings.isPending}
+            >
+              {updateSettings.isPending ? '保存中...' : '保存更改'}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 更新状态提示 */}
+      {/* 状态提示 */}
       {updateSettings.isPending && (
-        <div className="fixed z-50 bottom-4 right-4">
-          <div className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg shadow-lg">
-            <div className="w-4 h-4 border-2 border-white rounded-full animate-spin border-t-transparent" />
+        <div className="fixed right-4 bottom-4 z-50">
+          <div className="flex gap-2 items-center px-3 py-2 text-sm text-white bg-blue-600 rounded-lg shadow-lg">
+            <RefreshCw className="w-4 h-4 animate-spin" />
             <span>保存设置中...</span>
           </div>
         </div>
       )}
-
-      {updateSettings.isSuccess && (
-        <div className="fixed z-50 bottom-4 right-4 animate-fade-in-up">
-          <div className="flex items-center gap-2 px-4 py-2 text-white bg-green-600 rounded-lg shadow-lg">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>设置已保存</span>
-          </div>
-        </div>
-      )}
-
-      {updateSettings.isError && (
-        <div className="fixed z-50 bottom-4 right-4">
-          <div className="flex items-center gap-2 px-4 py-2 text-white bg-red-600 rounded-lg shadow-lg">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            <span>保存失败，请重试</span>
-          </div>
-        </div>
-      )}
-
-      {/* 底部信息 */}
-      <div className="p-4 mt-8 text-center">
-        <div className="text-sm text-gray-500">
-          <p>Craz Chrome Extension</p>
-          <p className="mt-1">版本 1.0.0</p>
-          <p className="mt-2">
-            设置最后更新时间: {new Date(data.settings.updatedAt).toLocaleString('zh-CN')}
-          </p>
-        </div>
-      </div>
     </div>
   )
 }

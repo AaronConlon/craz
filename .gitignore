@@ -41,3 +41,12 @@ api/dist
 api/coverage
 api/out
 api/build
+
+# env
+.env
+.env.prod
+
+# logs
+logs/
+logs/*
+logs/**/*
