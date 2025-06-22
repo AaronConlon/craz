@@ -2,8 +2,7 @@ import { useState, type FormEvent } from 'react'
 
 import { useUserProfile } from '~source/shared/hooks/use-user-profile'
 import { celebrateSuccess } from '~source/shared/utils/confetti'
-import { LoginView } from './login-view'
-import { RegisterView } from './register-view'
+import { AuthContainer } from './auth-container'
 import { UserProfileView } from './user-profile-view'
 
 export function ProfileView() {
@@ -16,8 +15,7 @@ export function ProfileView() {
     isLoading
   } = useUserProfile()
 
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
-  const [showPassword, setShowPassword] = useState(false)
+  const [isLoginMode, setIsLoginMode] = useState(true)
   const [authForm, setAuthForm] = useState<{
     email: string
     password: string
@@ -69,31 +67,18 @@ export function ProfileView() {
   }
 
   if (!isLoggedIn) {
-    if (authMode === 'login') {
-      return (
-        <LoginView
-          authForm={authForm}
-          setAuthForm={setAuthForm}
-          showPassword={showPassword}
-          setShowPassword={setShowPassword}
-          handleSubmit={handleLoginSubmit}
-          isLoading={login.isPending}
-          onSwitchToRegister={() => setAuthMode('register')}
-        />
-      )
-    } else {
-      return (
-        <RegisterView
-          authForm={authForm}
-          setAuthForm={setAuthForm}
-          showPassword={showPassword}
-          setShowPassword={setShowPassword}
-          handleSubmit={handleRegisterSubmit}
-          isLoading={register.isPending}
-          onSwitchToLogin={() => setAuthMode('login')}
-        />
-      )
-    }
+    return (
+      <AuthContainer
+        authForm={authForm}
+        setAuthForm={setAuthForm}
+        handleLoginSubmit={handleLoginSubmit}
+        handleRegisterSubmit={handleRegisterSubmit}
+        isLoginMode={isLoginMode}
+        setIsLoginMode={setIsLoginMode}
+        login={login}
+        register={register}
+      />
+    )
   }
 
   return <UserProfileView user={user} onLogout={handleLogout} />
