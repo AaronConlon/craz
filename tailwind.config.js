@@ -1,13 +1,95 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   mode: "jit",
-  darkMode: "class",
-  content: ["./contents/*.tsx", "./source/**/*.tsx"],
+  darkMode: ['selector', '[data-appearance="dark"] &'],
+  content: [
+    "./contents/**/*.tsx",
+    "./source/**/*.tsx",
+    "./popup.tsx",
+    "./sidepanel.tsx",
+  ],
+  safelist: [
+    // 强制包含深色模式类
+    'dark:bg-gray-900',
+    'dark:bg-gray-800',
+    'dark:bg-gray-700',
+    'dark:bg-gray-600',
+    'dark:border-gray-700',
+    'dark:border-gray-600',
+    'dark:text-white',
+    'dark:text-gray-300',
+    'dark:text-gray-400',
+    'dark:bg-theme-primary-900',
+    'dark:hover:border-theme-primary-400',
+    // 透明度背景
+    'dark:bg-gray-800/80',
+    // 主题色相关
+    'dark:bg-theme-primary-900',
+    'dark:border-theme-primary-700',
+    'dark:text-theme-primary-100',
+    'dark:text-theme-primary-400'
+  ],
   theme: {
     extend: {
       // 自定义毛玻璃效果类
       backdropBlur: {
         'xs': '2px',
+      },
+      // 主题色配置 - 基于CSS变量
+      colors: {
+        theme: {
+          // 主色调
+          'primary': {
+            50: 'var(--theme-primary-50)',
+            100: 'var(--theme-primary-100)',
+            200: 'var(--theme-primary-200)',
+            300: 'var(--theme-primary-300)',
+            400: 'var(--theme-primary-400)',
+            500: 'var(--theme-primary-500)',
+            600: 'var(--theme-primary-600)',
+            700: 'var(--theme-primary-700)',
+            800: 'var(--theme-primary-800)',
+            900: 'var(--theme-primary-900)',
+          },
+          // 背景色
+          'bg': {
+            'primary': 'var(--theme-bg-primary)',
+            'secondary': 'var(--theme-bg-secondary)',
+            'accent': 'var(--theme-bg-accent)',
+          },
+          // 文本色
+          'text': {
+            'primary': 'var(--theme-text-primary)',
+            'secondary': 'var(--theme-text-secondary)',
+            'accent': 'var(--theme-text-accent)',
+          },
+          // 边框色
+          'border': {
+            'primary': 'var(--theme-border-primary)',
+            'secondary': 'var(--theme-border-secondary)',
+          },
+          'spacing': {
+
+          }
+        }
+      },
+      // 字体大小配置 - 基于CSS变量
+      fontSize: {
+        'xs': ['var(--font-size-xs)', { lineHeight: 'var(--theme-line-height-xs)' }],
+        'sm': ['var(--font-size-sm)', { lineHeight: 'var(--theme-line-height-sm)' }],
+        'base': ['var(--font-size-base)', { lineHeight: 'var(--theme-line-height-base)' }],
+        'lg': ['var(--font-size-lg)', { lineHeight: 'var(--theme-line-height-lg)' }],
+        'xl': ['var(--font-size-xl)', { lineHeight: 'var(--theme-line-height-xl)' }],
+        '2xl': ['var(--font-size-2xl)', { lineHeight: 'var(--theme-line-height-2xl)' }],
+        '3xl': ['var(--font-size-3xl)', { lineHeight: 'var(--theme-line-height-3xl)' }],
+      },
+      // 间距配置 - 基于字体大小的相对间距
+      spacing: {
+        'theme-xs': 'var(--theme-spacing-xs)',
+        'theme-sm': 'var(--theme-spacing-sm)',
+        'theme-base': 'var(--theme-spacing-base)',
+        'theme-lg': 'var(--theme-spacing-lg)',
+        'theme-xl': 'var(--theme-spacing-xl)',
       },
     }
   },

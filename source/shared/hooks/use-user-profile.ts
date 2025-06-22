@@ -54,18 +54,18 @@ export function useUserProfile() {
       return response.data
     },
     onSuccess: (updatedSettings) => {
+      console.log("updatedSettings:", updatedSettings)
+
       // 更新缓存中的设置
       queryClient.setQueryData(["userProfile"], (oldData: UserProfile) => ({
         ...oldData,
         settings: updatedSettings,
         lastSyncAt: Date.now()
       }))
-
-      toast.success("设置已保存")
     },
     onError: (error: Error) => {
       console.error("Failed to update settings:", error)
-      toast.error(error.message || "保存设置失败")
+      toast.error(error.message || "暂时无法保存设置")
     }
   })
 

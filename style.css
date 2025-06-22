@@ -1,9 +1,308 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* 界面模式支持 - 使用 data-appearance 属性 */
+[data-appearance="dark"] {
+  /* 深色模式基础样式 */
+  color-scheme: dark;
+}
+
+[data-appearance="light"] {
+  /* 浅色模式基础样式 */
+  color-scheme: light;
+}
+
+/* 深色模式下的基础颜色覆盖 */
+[data-appearance="dark"] {
+  /* 背景色 */
+  --tw-bg-opacity: 1;
+  
+  /* 文本色 */
+  --tw-text-opacity: 1;
+  
+  /* 边框色 */
+  --tw-border-opacity: 1;
+}
+
+@layer base {
+  /* CSS变量定义 - 主题系统 */
+  :root {
+    /* 主题色变量 - 默认使用 amber 主题 */
+    --theme-primary: #FBBF24;
+    --theme-primary-50: #FFFBEB;
+    --theme-primary-100: #FEF3C7;
+    --theme-primary-200: #FDE68A;
+    --theme-primary-300: #FCD34D;
+    --theme-primary-400: #FBBF24;
+    --theme-primary-500: #F59E0B;
+    --theme-primary-600: #D97706;
+    --theme-primary-700: #B45309;
+    --theme-primary-800: #92400E;
+    --theme-primary-900: #78350F;
+
+    /* 字体大小变量 */
+    --font-size-xs: 0.75rem;     /* 12px */
+    --font-size-sm: 0.875rem;    /* 14px */
+    --font-size-base: 1rem;      /* 16px */
+    --font-size-lg: 1.125rem;    /* 18px */
+    --font-size-xl: 1.25rem;     /* 20px */
+    --font-size-2xl: 1.5rem;     /* 24px */
+    --font-size-3xl: 1.875rem;   /* 30px */
+    /* leading */
+    --theme-line-height-xs: 1.2;
+    --theme-line-height-sm: 1.4;
+    --theme-line-height-base: 1.5;
+    --theme-line-height-lg: 1.6;
+    --theme-line-height-xl: 1.7;
+    --theme-line-height-2xl: 1.8;
+    --theme-line-height-3xl: 1.9;
+
+
+    /* 行高变量 */
+    --line-height-small: 1.25;
+    --line-height-medium: 1.5;
+    --line-height-large: 1.625;
+
+    /* 间距变量（基于字体大小） */
+    --spacing-xs: calc(var(--font-size-base) * 0.25);
+    --spacing-sm: calc(var(--font-size-base) * 0.5);
+    --spacing-md: calc(var(--font-size-base) * 0.75);
+    --spacing-lg: calc(var(--font-size-base) * 1);
+    --spacing-xl: calc(var(--font-size-base) * 1.5);
+    --spacing-2xl: calc(var(--font-size-base) * 2);
+
+    /* 主题背景色变量 */
+    --theme-bg-primary: var(--theme-primary-600);
+    --theme-bg-secondary: var(--theme-primary-100);
+    --theme-bg-accent: var(--theme-primary-50);
+
+    /* 主题文本色变量 */
+    --theme-text-primary: var(--theme-primary-900);
+    --theme-text-secondary: var(--theme-primary-700);
+    --theme-text-accent: var(--theme-primary-600);
+
+    /* 主题边框色变量 */
+    --theme-border-primary: var(--theme-primary-300);
+    --theme-border-secondary: var(--theme-primary-200);
+  }
+
+  /* 主题色方案定义 - Tailwind CSS 400级别 */
+  [data-theme="zinc"] {
+    --theme-primary: #121826;
+    --theme-primary-50: #8B95A8;
+    --theme-primary-100: #7A8496;
+    --theme-primary-200: #697285;
+    --theme-primary-300: #586173;
+    --theme-primary-400: #121826;
+    --theme-primary-500: #0F1420;
+    --theme-primary-600: #0C111B;
+    --theme-primary-700: #090D15;
+    --theme-primary-800: #060A10;
+    --theme-primary-900: #03060A;
+  }
+
+  [data-theme="indigo"] {
+    --theme-primary: #818CF8;
+    --theme-primary-50: #EEF2FF;
+    --theme-primary-100: #E0E7FF;
+    --theme-primary-200: #C7D2FE;
+    --theme-primary-300: #A5B4FC;
+    --theme-primary-400: #818CF8;
+    --theme-primary-500: #6366F1;
+    --theme-primary-600: #4F46E5;
+    --theme-primary-700: #4338CA;
+    --theme-primary-800: #3730A3;
+    --theme-primary-900: #312E81;
+  }
+
+  [data-theme="emerald"] {
+    --theme-primary: #34D399;
+    --theme-primary-50: #ECFDF5;
+    --theme-primary-100: #D1FAE5;
+    --theme-primary-200: #A7F3D0;
+    --theme-primary-300: #6EE7B7;
+    --theme-primary-400: #34D399;
+    --theme-primary-500: #10B981;
+    --theme-primary-600: #059669;
+    --theme-primary-700: #047857;
+    --theme-primary-800: #065F46;
+    --theme-primary-900: #064E3B;
+  }
+
+  [data-theme="amber"] {
+    --theme-primary: #FBBF24;
+    --theme-primary-50: #FFFBEB;
+    --theme-primary-100: #FEF3C7;
+    --theme-primary-200: #FDE68A;
+    --theme-primary-300: #FCD34D;
+    --theme-primary-400: #FBBF24;
+    --theme-primary-500: #F59E0B;
+    --theme-primary-600: #D97706;
+    --theme-primary-700: #B45309;
+    --theme-primary-800: #92400E;
+    --theme-primary-900: #78350F;
+  }
+
+  [data-theme="rose"] {
+    --theme-primary: #FB7185;
+    --theme-primary-50: #FFF1F2;
+    --theme-primary-100: #FFE4E6;
+    --theme-primary-200: #FECDD3;
+    --theme-primary-300: #FDA4AF;
+    --theme-primary-400: #FB7185;
+    --theme-primary-500: #F43F5E;
+    --theme-primary-600: #E11D48;
+    --theme-primary-700: #BE123C;
+    --theme-primary-800: #9F1239;
+    --theme-primary-900: #881337;
+  }
+
+  /* 字体大小方案定义 */
+  [data-font-size="small"] {
+    --font-size-xs: 0.75rem;     /* 12px */
+    --font-size-sm: 0.875rem;    /* 14px */
+    --font-size-base: 1rem;      /* 16px */
+    --font-size-lg: 1.125rem;    /* 18px */
+    --font-size-xl: 1.25rem;     /* 20px */
+    --font-size-2xl: 1.5rem;     /* 24px */
+    --font-size-3xl: 1.875rem;   /* 30px */
+    --theme-line-height-xs: 1.2;
+    --theme-line-height-sm: 1.4;
+    --theme-line-height-base: 1.5;
+    --theme-line-height-lg: 1.6;
+    --theme-line-height-xl: 1.7;
+    --theme-line-height-2xl: 1.8;
+    --theme-line-height-3xl: 1.9;
+  }
+
+  [data-font-size="medium"] {
+    --font-size-xs: 0.875rem;     /* 14px */
+    --font-size-sm: 1rem;    /* 16px */
+    --font-size-base: 1.125rem;      /* 18px */
+    --font-size-lg: 1.25rem;    /* 20px */
+    --font-size-xl: 1.5rem;     /* 24px */
+    --font-size-2xl: 1.875rem;     /* 30px */
+    --font-size-3xl: 2.25rem;   /* 36px */
+    --theme-line-height-xs: 1.3;
+    --theme-line-height-sm: 1.45;
+    --theme-line-height-base: 1.6;
+    --theme-line-height-lg: 1.7;
+    --theme-line-height-xl: 1.8;
+    --theme-line-height-2xl: 2;
+    --theme-line-height-3xl: 2.2;
+  }
+
+  [data-font-size="large"] {
+    --font-size-xs: 1rem;     /* 16px */
+    --font-size-sm: 1.125rem;    /* 18px */
+    --font-size-base: 1.25rem;      /* 20px */
+    --font-size-lg: 1.5rem;    /* 24px */
+    --font-size-xl: 1.875rem;     /* 30px */
+    --font-size-2xl: 2.25rem;   /* 36px */
+    --font-size-3xl: 2.75rem;   /* 44px */
+    --theme-line-height-xs: 1.4;
+    --theme-line-height-sm: 1.55;
+    --theme-line-height-base: 1.7;
+    --theme-line-height-lg: 1.8;
+    --theme-line-height-xl: 2;
+    --theme-line-height-2xl: 2.2;
+    --theme-line-height-3xl: 2.5;
+  }
+
+  /* 自定义主题色支持 */
+  [data-theme="custom"] {
+    /* 这些变量将由JavaScript动态设置 */
+    --theme-primary: var(--custom-primary, #3B82F6);
+    --theme-primary-50: var(--custom-primary-50, #EFF6FF);
+    --theme-primary-100: var(--custom-primary-100, #DBEAFE);
+    --theme-primary-200: var(--custom-primary-200, #BFDBFE);
+    --theme-primary-300: var(--custom-primary-300, #93C5FD);
+    --theme-primary-400: var(--custom-primary-400, #60A5FA);
+    --theme-primary-500: var(--custom-primary-500, #3B82F6);
+    --theme-primary-600: var(--custom-primary-600, #2563EB);
+    --theme-primary-700: var(--custom-primary-700, #1D4ED8);
+    --theme-primary-800: var(--custom-primary-800, #1E40AF);
+    --theme-primary-900: var(--custom-primary-900, #1E3A8A);
+  }
+}
+
+@layer components {
+  /* 主题色应用类 */
+  .theme-primary {
+    color: var(--theme-primary);
+  }
+
+  .theme-bg-primary {
+    background-color: var(--theme-primary);
+  }
+
+  .theme-border-primary {
+    border-color: var(--theme-primary);
+  }
+
+  .theme-bg-primary-50 {
+    background-color: var(--theme-primary-50);
+  }
+
+  .theme-bg-primary-100 {
+    background-color: var(--theme-primary-100);
+  }
+
+  .theme-bg-primary-500 {
+    background-color: var(--theme-primary-500);
+  }
+
+  .theme-bg-primary-600 {
+    background-color: var(--theme-primary-600);
+  }
+
+  .theme-border-primary-500 {
+    border-color: var(--theme-primary-500);
+  }
+  .theme-text-primary {
+    color: var(--theme-primary);
+  }
+
+  .theme-text-primary-600 {
+    color: var(--theme-primary-600);
+  }
+
+  /* 字体大小应用类 */
+  .text-theme-sm {
+    font-size: var(--font-size-small);
+    line-height: var(--line-height-small);
+  }
+
+  .text-theme-base {
+    font-size: var(--font-size-medium);
+    line-height: var(--line-height-medium);
+  }
+
+  .text-theme-lg {
+    font-size: var(--font-size-large);
+    line-height: var(--line-height-large);
+  }
+
+  /* 响应式字体大小 */
+  .text-responsive {
+    font-size: var(--font-size-medium);
+    line-height: var(--line-height-medium);
+  }
+}
+
 /* macOS 风格滚动条 */
 @layer utilities {
+  /* 动画过渡 */
+  .theme-transition {
+    transition: 
+      color 0.2s ease-in-out,
+      background-color 0.2s ease-in-out,
+      border-color 0.2s ease-in-out,
+      font-size 0.2s ease-in-out;
+  }
+
   .scrollbar-macos {
     /* WebKit 浏览器滚动条样式 */
     &::-webkit-scrollbar {

@@ -1,4 +1,6 @@
 export * from "./ui/tab-switcher"
+export { TabsContent } from "./ui/tabs-content"
+export { ViewContainer } from "./ui/view-container"
 export * from "./ui/profile-view"
 export * from "./model/use-tab-switcher"
 export * from "./types"

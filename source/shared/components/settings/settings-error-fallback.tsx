@@ -1,4 +1,5 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { Button } from '../button'
 
 interface SettingsErrorFallbackProps {
   error?: Error
@@ -8,7 +9,7 @@ interface SettingsErrorFallbackProps {
 export function SettingsErrorFallback({ error, resetErrorBoundary }: SettingsErrorFallbackProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[320px] p-8 text-center">
-      <AlertTriangle className="w-16 h-16 mb-4 text-red-500" />
+      <AlertTriangle className="mb-4 w-16 h-16 text-red-500" />
 
       <h2 className="mb-2 text-xl font-semibold text-gray-800">
         设置加载失败
@@ -19,13 +20,14 @@ export function SettingsErrorFallback({ error, resetErrorBoundary }: SettingsErr
       </p>
 
       {resetErrorBoundary && (
-        <button
+        <Button
           onClick={resetErrorBoundary}
-          className="flex items-center gap-2 px-6 py-3 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
+          variant="default"
+          size="lg"
+          icon={<RefreshCw size={16} />}
         >
-          <RefreshCw size={16} />
           重新加载
-        </button>
+        </Button>
       )}
 
       <div className="mt-6 text-sm text-gray-500">

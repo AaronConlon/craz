@@ -19,6 +19,7 @@ import {
 
 import { cn } from '~source/shared/utils'
 import { useUserProfile } from '~source/shared/hooks/use-user-profile'
+import { Button } from '~source/shared/components'
 
 export function ProfileView() {
   const {
@@ -111,7 +112,7 @@ function LoginRegisterView({
   isLoading
 }: LoginRegisterViewProps) {
   return (
-    <div className="overflow-y-auto max-h-[500px] scrollbar-macos-thin mt-[64px]">
+    <div className="overflow-y-auto max-h-[500px] scrollbar-macos-thin w-[520px]">
       <div className="p-6 mx-auto max-w-lg bg-white rounded-xl shadow-sm">
         {/* Logo */}
         <div className="flex gap-2 items-center mb-6">
@@ -195,13 +196,13 @@ function LoginRegisterView({
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={isLoading}
-            className="py-2 w-full text-sm font-medium text-white bg-purple-600 rounded-lg transition-colors hover:bg-purple-700 disabled:opacity-50"
+            className="w-full bg-purple-600 hover:bg-purple-700"
           >
             {isLoading ? 'Loading...' : (authMode === 'login' ? 'Sign In' : 'Sign Up')}
-          </button>
+          </Button>
         </form>
 
         {/* 切换模式 */}
@@ -209,12 +210,14 @@ function LoginRegisterView({
           <span className="text-sm text-gray-600">
             {authMode === 'login' ? "Don't have an account? " : "Already have an account? "}
           </span>
-          <button
+          <Button
+            variant="link"
+            size="sm"
             onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-            className="text-sm font-medium text-purple-600 hover:text-purple-700"
+            className="text-purple-600 hover:text-purple-700"
           >
             {authMode === 'login' ? 'Sign Up' : 'Sign In'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -274,19 +277,21 @@ function UserProfileView({ user, onLogout }: UserProfileViewProps) {
 
           {/* 操作按钮 */}
           <div className="flex gap-1 items-center">
-            <button className="flex gap-1 items-center px-3 py-1.5 text-sm text-gray-700 rounded-md border border-gray-300 hover:bg-gray-50">
+            <Button variant="outline" size="sm" className="gap-1">
               <Archive size={14} />
               Archive
-            </button>
-            <button className="px-3 py-1.5 text-sm text-gray-700 rounded-md border border-gray-300 hover:bg-gray-50">
+            </Button>
+            <Button variant="outline" size="sm">
               View orders
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onLogout}
-              className="p-1.5 text-gray-400 hover:text-gray-600"
+              className="w-8 h-8 text-gray-400 hover:text-gray-600"
             >
               <X size={16} />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -404,22 +409,26 @@ function UserProfileView({ user, onLogout }: UserProfileViewProps) {
         <div className="flex justify-between items-center pt-4 mt-6 border-t border-gray-200">
           {isEditing ? (
             <>
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setIsEditing(false)}
-                className="px-3 py-1.5 text-sm text-gray-600 rounded-md border border-gray-300 hover:bg-gray-50"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                size="sm"
                 onClick={handleSave}
-                className="px-4 py-1.5 text-sm text-white bg-gray-900 rounded-md hover:bg-gray-800"
+                className="bg-gray-900 hover:bg-gray-800"
               >
                 Save changes
-              </button>
+              </Button>
             </>
           ) : (
             <>
-              <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                 onClick={() => {
                   // 重置表单
                   setEditForm({
@@ -430,20 +439,20 @@ function UserProfileView({ user, onLogout }: UserProfileViewProps) {
                     username: user?.username || user?.name?.toLowerCase().replace(' ', '') || ''
                   })
                 }}
-                className="text-sm text-gray-600 hover:text-gray-800"
               >
                 Reset to default
-              </button>
+                </Button>
               <div className="flex gap-2">
-                <button className="px-3 py-1.5 text-sm text-gray-600 rounded-md border border-gray-300 hover:bg-gray-50">
+                  <Button variant="outline" size="sm">
                   Cancel
-                </button>
-                <button
+                  </Button>
+                  <Button
+                    size="sm"
                   onClick={() => setIsEditing(true)}
-                  className="px-4 py-1.5 text-sm text-white bg-gray-900 rounded-md hover:bg-gray-800"
+                    className="bg-gray-900 hover:bg-gray-800"
                 >
                   Edit Profile
-                </button>
+                  </Button>
               </div>
             </>
           )}

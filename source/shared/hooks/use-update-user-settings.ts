@@ -1,9 +1,12 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-import { userProfileAction } from "../api/messages"
-import type { UserSettings } from "../types/settings"
-import type { UserProfile } from "./use-user-profile"
+
+
+import { userProfileAction } from "../api/messages";
+import type { UserSettings } from "../types/settings";
+import type { UserProfile } from "./use-user-profile";
+
 
 export function useUpdateUserSettings() {
   const queryClient = useQueryClient()
@@ -29,7 +32,7 @@ export function useUpdateUserSettings() {
         lastSyncAt: Date.now()
       }))
 
-      toast.success("设置已保存")
+      toast.success("设置已保存~")
     },
     onError: (error: Error) => {
       console.error("Failed to update settings:", error)

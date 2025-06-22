@@ -1,15 +1,25 @@
 import {
   AlertCircle,
   Check,
+  Download,
+  Globe,
   RefreshCw,
-  Settings
+  RotateCcw,
+  Settings,
+  Shield,
+  Type,
+  Upload
 } from 'lucide-react'
-import { Component, Suspense, type ReactNode } from 'react'
+import { Component, Suspense, useState, type ReactNode } from 'react'
+import { toast } from 'sonner'
 
+import { Button, ColorPicker, Toggle, useTheme } from '~source/shared/components'
+import { useCustomColor } from '~source/shared/hooks/use-custom-color'
 import { useUserProfile } from '~source/shared/hooks/use-user-profile'
-import type { Theme } from '~source/shared/types/settings'
-import { THEME_COLORS } from '~source/shared/types/settings'
+import type { AppearanceMode, FontSize, Language, ThemeColor, UserSettings } from '~source/shared/types/settings'
+import { APPEARANCE_MODES, FONT_SIZES, LANGUAGES, THEME_COLORS } from '~source/shared/types/settings'
 import { cn } from '~source/shared/utils'
+import { applyAppearanceMode, getActualDarkMode, getSystemDarkMode } from '~source/shared/utils/appearance-utils'
 
 // 错误边界组件
 class SettingsErrorBoundary extends Component<
@@ -38,15 +48,14 @@ class SettingsErrorBoundary extends Component<
           <p className="mb-4 text-sm text-gray-600">
             {this.state.error?.message || '未知错误'}
           </p>
-          <button
+          <Button
             onClick={() => {
               this.setState({ hasError: false, error: undefined })
               window.location.reload()
             }}
-            className="px-4 py-2 text-white bg-blue-600 rounded-lg transition-colors hover:bg-blue-700"
           >
             重新加载
-          </button>
+          </Button>
         </div>
       )
     }
@@ -85,39 +94,196 @@ export function SettingsView() {
 
 function SettingsContent() {
   const {
-    settings,
+    settings: originalSettings,
     updateSettings,
     isLoading,
     isFetching
   } = useUserProfile()
+  const { setThemeColor, setAppearanceMode, setFontSize, setCustomColor } = useTheme()
+  const { customColor: storedCustomColor, isLoading: customColorLoading } = useCustomColor()
 
-  const handleUpdateSetting = <K extends keyof typeof settings>(
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+
+  // 当前显示的设置
+  const currentSettings = originalSettings
+
+  const handleSettingChange = <K extends keyof UserSettings>(
     key: K,
-    value: typeof settings[K]
+    value: UserSettings[K]
   ) => {
-    updateSettings.mutate({ [key]: value })
+    // 立即应用主题变化
+    if (key === 'themeColor') {
+      setThemeColor(value as ThemeColor)
+    } else if (key === 'appearanceMode') {
+      setAppearanceMode(value as AppearanceMode)
+    } else if (key === 'fontSize') {
+      setFontSize(value as FontSize)
+    }
+
+    // 立即保存到服务器
+    updateSettings.mutate({
+      [key]: value
+    } as Partial<UserSettings>)
   }
 
-  if (isLoading) {
+  const handleThemeColorChange = (themeColor: ThemeColor) => {
+    handleSettingChange('themeColor', themeColor)
+  }
+
+  const handleAppearanceModeChange = (appearanceMode: AppearanceMode) => {
+    handleSettingChange('appearanceMode', appearanceMode)
+  }
+
+  const handleFontSizeChange = (fontSize: FontSize) => {
+    handleSettingChange('fontSize', fontSize)
+  }
+
+  const handleLanguageChange = (language: Language) => {
+    handleSettingChange('language', language)
+  }
+
+  const handleCustomColorChange = (color: string) => {
+    console.log('handleCustomColorChange called with:', color)
+
+    // 检查是否是预设主题色
+    const presetTheme = Object.entries(THEME_COLORS).find(([themeColor, colorValue]) =>
+      themeColor !== 'custom' && colorValue === color
+    )
+
+    console.log('presetTheme found:', presetTheme)
+
+    if (presetTheme) {
+      // 如果是预设颜色，设置对应的主题
+      console.log('Setting preset theme:', presetTheme[0])
+      handleSettingChange('themeColor', presetTheme[0] as ThemeColor)
+    } else {
+      // 如果是自定义颜色，设置自定义主题并保存颜色
+      console.log('Setting custom color:', color)
+      setCustomColor(color)
+      handleSettingChange('themeColor', 'custom')
+    }
+  }
+
+  // 从云端加载设置
+  const handleDownloadFromCloud = async () => {
+    setIsDownloading(true)
+    try {
+      // 调用 background script 从云端下载设置
+      const response = await chrome.runtime.sendMessage({
+        name: "user-profile-action",
+        body: {
+          action: "downloadSettingsFromCloud"
+        }
+      })
+
+      if (response.success && response.data?.settings) {
+        const cloudSettings = response.data.settings
+
+        // 应用云端设置
+        setThemeColor(cloudSettings.themeColor)
+        setAppearanceMode(cloudSettings.appearanceMode)
+        setFontSize(cloudSettings.fontSize)
+
+        toast.success('从云端加载成功', {
+          description: response.data.message || '已同步云端的最新设置'
+        })
+      } else {
+        toast.error('从云端加载失败', {
+          description: response.data?.message || '请检查网络连接或稍后重试'
+        })
+      }
+    } catch (error) {
+      toast.error('从云端加载失败', {
+        description: '请检查网络连接或稍后重试'
+      })
+      console.error('Failed to download from cloud:', error)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // 上传设置到云端
+  const handleUploadToCloud = async () => {
+    if (!currentSettings) return
+
+    setIsUploading(true)
+    try {
+      // 调用 background script 上传到云端
+      const response = await chrome.runtime.sendMessage({
+        name: "user-profile-action",
+        body: {
+          action: "uploadSettingsToCloud"
+        }
+      })
+
+      if (response.success) {
+        toast.success('上传到云端成功', {
+          description: response.data?.message || '您的设置已保存到云端'
+        })
+      } else {
+        toast.error('上传到云端失败', {
+          description: response.data?.message || '请稍后重试或检查网络连接'
+        })
+      }
+    } catch (error) {
+      toast.error('上传到云端失败', {
+        description: '请稍后重试或检查网络连接'
+      })
+      console.error('Failed to upload to cloud:', error)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  // 重置为默认设置
+  const handleResetToDefaults = () => {
+    const defaultSettings = {
+      themeColor: 'amber' as ThemeColor,
+      appearanceMode: 'system' as AppearanceMode,
+      language: 'zh-CN' as Language,
+      fontSize: 'medium' as FontSize,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
+
+    // 立即应用和保存默认设置
+    setThemeColor(defaultSettings.themeColor)
+    setAppearanceMode(defaultSettings.appearanceMode)
+    setFontSize(defaultSettings.fontSize)
+
+    updateSettings.mutate({
+      themeColor: defaultSettings.themeColor,
+      appearanceMode: defaultSettings.appearanceMode,
+      language: defaultSettings.language,
+      fontSize: defaultSettings.fontSize
+    })
+
+    toast.info('已重置为默认设置', {
+      description: '设置已自动保存'
+    })
+  }
+
+  if (isLoading || !currentSettings) {
     return <SettingsLoadingSkeleton />
   }
 
   return (
-    <div className="overflow-y-auto h-full bg-gray-50 scrollbar-macos-thin">
+    <div className="overflow-y-auto relative pb-32 h-full bg-gray-50 dark:bg-gray-900 scrollbar-macos-thin">
       {/* 标题栏 */}
-      <div className="sticky top-0 z-10 border-b border-gray-200 backdrop-blur-sm bg-white/80">
+      <div className="flex sticky top-0 z-10 justify-between items-center border-b border-gray-200 backdrop-blur-sm dark:border-gray-700 bg-white/80 dark:bg-gray-800/80">
         <div className="flex justify-between items-center px-6 py-4">
           <div className="flex gap-3 items-center">
             <Settings className="text-gray-700" size={20} />
-            <h1 className="text-lg font-semibold text-gray-900">外观</h1>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">设置</h1>
           </div>
 
           {isFetching && (
-            <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
+            <RefreshCw className="w-4 h-4 animate-spin text-theme-primary-600" />
           )}
         </div>
-        <p className="px-6 pb-4 text-sm text-gray-600">
-          更改 Craz 在浏览器中的外观和感觉。
+        <p className="p-4 text-sm text-theme-primary-600">
+          自由定义您的浏览器体验 🚀🚀🚀
         </p>
       </div>
 
@@ -125,227 +291,192 @@ function SettingsContent() {
         {/* 主题色设置 */}
         <section>
           <div className="mb-4">
-            <h3 className="mb-1 text-sm font-medium text-gray-900">主题色</h3>
-            <p className="text-xs text-gray-600">更新您的仪表板为您的品牌颜色。</p>
+            <h3 className="mb-1 text-sm font-medium text-gray-900 dark:text-white">主题色</h3>
           </div>
 
-          <div className="flex gap-3 items-center">
-            {/* 预设颜色 */}
-            <div className="flex gap-2">
-              {Object.entries(THEME_COLORS).map(([theme, color]) => (
-                <button
-                  key={theme}
-                  onClick={() => handleUpdateSetting('theme', theme as Theme)}
-                  className={cn(
-                    "w-7 h-7 rounded-full border-2 transition-all hover:scale-110",
-                    settings.theme === theme
-                      ? "border-gray-400 ring-2 ring-blue-500 ring-offset-2"
-                      : "border-gray-200 hover:border-gray-300"
-                  )}
-                  style={{ backgroundColor: color }}
-                  title={theme}
-                />
-              ))}
-            </div>
-
-            {/* 自定义颜色 */}
-            <div className="flex gap-2 items-center ml-4">
-              <span className="text-xs font-medium text-gray-700">自定义</span>
-              <div className="flex gap-1 items-center">
-                <span className="text-xs text-gray-500">#</span>
-                <input
-                  type="text"
-                  placeholder="F5F5F5"
-                  className="px-2 py-1 w-20 text-xs bg-white rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </div>
+          <div className="max-w-xs">
+            <ColorPicker
+              color={currentSettings.themeColor === 'custom' && storedCustomColor ? storedCustomColor : THEME_COLORS[currentSettings.themeColor]}
+              onChange={handleCustomColorChange}
+              className="w-full"
+            />
           </div>
         </section>
 
-        {/* 界面主题 */}
+        {/* 界面模式 */}
         <section>
           <div className="mb-4">
-            <h3 className="mb-1 text-sm font-medium text-gray-900">界面主题</h3>
-            <p className="text-xs text-gray-600">选择或自定义您的 UI 主题。</p>
+            <h3 className="mb-1 text-sm font-medium text-gray-900 dark:text-white">界面模式</h3>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            {/* 系统偏好 */}
-            <div
-              className={cn(
-                "relative p-3 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
-                settings.theme === 'blue' ? "border-blue-500" : "border-gray-200"
-              )}
-              onClick={() => handleUpdateSetting('theme', 'blue')}
-            >
-              <div className="mb-3">
-                <div className="overflow-hidden w-full h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded border">
-                  <div className="flex gap-1 items-center p-2">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-red-400 rounded-full" />
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-                      <div className="w-2 h-2 bg-green-400 rounded-full" />
+            {Object.entries(APPEARANCE_MODES).map(([mode, label]) => (
+              <div
+                key={mode}
+                className={cn(
+                  "relative p-3 bg-white dark:bg-gray-800 border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
+                  currentSettings.appearanceMode === mode ? "border-theme-primary-500 bg-theme-primary-50 dark:bg-theme-primary-900" : "border-gray-200 dark:border-gray-600 hover:border-theme-primary-200 dark:hover:border-theme-primary-400"
+                )}
+                onClick={() => handleAppearanceModeChange(mode as AppearanceMode)}
+              >
+                <div className="mb-3">
+                  <div className={cn(
+                    "overflow-hidden w-full h-16 rounded border",
+                    mode === 'light' && "bg-white",
+                    mode === 'dark' && "bg-gray-900",
+                    mode === 'system' && "bg-gradient-to-br from-gray-100 to-gray-900"
+                  )}>
+                    <div className={cn(
+                      "flex gap-1 items-center p-2",
+                      mode === 'light' && "bg-gray-50",
+                      mode === 'dark' && "bg-gray-800",
+                      mode === 'system' && "bg-gray-200"
+                    )}>
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-red-400 rounded-full" />
+                        <div className="w-2 h-2 bg-yellow-400 rounded-full" />
+                        <div className="w-2 h-2 bg-green-400 rounded-full" />
+                      </div>
+                    </div>
+                    <div className="px-2 py-1 space-y-1">
+                      <div className="flex gap-2 items-center">
+                        <div className="w-3 h-1 rounded bg-theme-primary-500" />
+                        <div className={cn(
+                          "flex-1 h-1 rounded",
+                          mode === 'light' && "bg-gray-200",
+                          mode === 'dark' && "bg-gray-600",
+                          mode === 'system' && "bg-gray-400"
+                        )} />
+                      </div>
+                      <div className={cn(
+                        "w-full h-4 rounded",
+                        mode === 'light' && "bg-gray-100",
+                        mode === 'dark' && "bg-gray-700",
+                        mode === 'system' && "bg-gray-500"
+                      )} />
                     </div>
                   </div>
-                  <div className="px-2 space-y-1">
-                    <div className="flex gap-2 items-center">
-                      <div className="w-3 h-1 bg-blue-500 rounded" />
-                      <div className="flex-1 h-1 bg-gray-300 rounded" />
-                    </div>
-                    <div className="w-full h-6 bg-gray-800 rounded" />
+                </div>
+                <div className="flex gap-2 items-center">
+                  <div className={cn(
+                    "w-4 h-4 border-2 rounded-full flex items-center justify-center",
+                    currentSettings.appearanceMode === mode ? "border-theme-primary-500 bg-theme-primary-500" : "border-gray-300"
+                  )}>
+                    {currentSettings.appearanceMode === mode && (
+                      <Check className="w-2 h-2 text-white" />
+                    )}
                   </div>
+                  <span className="text-xs font-medium text-gray-900 dark:text-white">{label}</span>
                 </div>
               </div>
-              <div className="flex gap-2 items-center">
-                <div className={cn(
-                  "w-4 h-4 border-2 rounded-full flex items-center justify-center",
-                  settings.theme === 'blue' ? "border-blue-500 bg-blue-500" : "border-gray-300"
-                )}>
-                  {settings.theme === 'blue' && (
-                    <Check className="w-2 h-2 text-white" />
-                  )}
-                </div>
-                <span className="text-xs font-medium text-gray-900">系统偏好</span>
-              </div>
-            </div>
+            ))}
+          </div>
+        </section>
 
-            {/* 浅色模式 */}
-            <div
-              className={cn(
-                "relative p-3 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
-                settings.theme === 'green' ? "border-blue-500" : "border-gray-200"
-              )}
-              onClick={() => handleUpdateSetting('theme', 'green')}
-            >
-              <div className="mb-3">
-                <div className="overflow-hidden w-full h-16 bg-white rounded border">
-                  <div className="flex gap-1 items-center p-2 bg-gray-50">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-red-400 rounded-full" />
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-                      <div className="w-2 h-2 bg-green-400 rounded-full" />
-                    </div>
-                  </div>
-                  <div className="px-2 py-1 space-y-1">
-                    <div className="flex gap-2 items-center">
-                      <div className="w-3 h-1 bg-blue-500 rounded" />
-                      <div className="flex-1 h-1 bg-gray-200 rounded" />
-                    </div>
-                    <div className="w-full h-4 bg-gray-100 rounded" />
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-2 items-center">
-                <div className={cn(
-                  "w-4 h-4 border-2 rounded-full flex items-center justify-center",
-                  settings.theme === 'green' ? "border-blue-500 bg-blue-500" : "border-gray-300"
-                )}>
-                  {settings.theme === 'green' && (
-                    <Check className="w-2 h-2 text-white" />
-                  )}
-                </div>
-                <span className="text-xs font-medium text-gray-900">浅色</span>
-              </div>
-            </div>
+        {/* 语言设置 */}
+        <section>
+          <div className="mb-4">
+            <h3 className="flex gap-2 items-center mb-1 text-sm font-medium text-gray-900">
+              <Globe size={16} />
+              语言
+            </h3>
+          </div>
 
-            {/* 深色模式 */}
-            <div
-              className={cn(
-                "relative p-3 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
-                settings.theme === 'purple' ? "border-blue-500" : "border-gray-200"
-              )}
-              onClick={() => handleUpdateSetting('theme', 'purple')}
-            >
-              <div className="mb-3">
-                <div className="overflow-hidden w-full h-16 bg-gray-900 rounded border">
-                  <div className="flex gap-1 items-center p-2">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-red-400 rounded-full" />
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full" />
-                      <div className="w-2 h-2 bg-green-400 rounded-full" />
-                    </div>
+          <div className="grid grid-cols-3 gap-3">
+            {Object.entries(LANGUAGES).map(([lang, label]) => (
+              <div
+                key={lang}
+                className={cn(
+                  "relative p-3 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
+                  currentSettings.language === lang ? "border-theme-primary-500 bg-theme-primary-50" : "border-gray-200 hover:border-theme-primary-200"
+                )}
+                onClick={() => handleLanguageChange(lang as Language)}
+              >
+                <div className="flex gap-2 items-center">
+                  <div className={cn(
+                    "w-4 h-4 border-2 rounded-full flex items-center justify-center",
+                    currentSettings.language === lang ? "border-theme-primary-500 bg-theme-primary-500" : "border-gray-300"
+                  )}>
+                    {currentSettings.language === lang && (
+                      <Check className="w-2 h-2 text-white" />
+                    )}
                   </div>
-                  <div className="px-2 py-1 space-y-1">
-                    <div className="flex gap-2 items-center">
-                      <div className="w-3 h-1 bg-blue-400 rounded" />
-                      <div className="flex-1 h-1 bg-gray-600 rounded" />
+                  <span className="text-sm font-medium text-gray-900">{label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 字体大小设置 */}
+        <section>
+          <div className="mb-4">
+            <h3 className="flex gap-2 items-center mb-1 text-sm font-medium text-gray-900">
+              <Type size={16} />
+              字体大小
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {Object.entries(FONT_SIZES).map(([size, config]) => (
+              <div
+                key={size}
+                className={cn(
+                  "relative p-4 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
+                  currentSettings.fontSize === size ? "border-theme-primary-500 bg-theme-primary-50" : "border-gray-200 hover:border-theme-primary-200"
+                )}
+                onClick={() => handleFontSizeChange(size as FontSize)}
+              >
+                <div className="text-center">
+                  <div className="mb-2">
+                    <span
+                      className="font-medium text-gray-900"
+                      style={{ fontSize: config.size }}
+                    >
+                      Aa
+                    </span>
+                  </div>
+                  <div className="flex gap-2 justify-center items-center">
+                    <div className={cn(
+                      "w-4 h-4 border-2 rounded-full flex items-center justify-center",
+                      currentSettings.fontSize === size ? "border-theme-primary-500 bg-theme-primary-500" : "border-gray-300"
+                    )}>
+                      {currentSettings.fontSize === size && (
+                        <Check className="w-2 h-2 text-white" />
+                      )}
                     </div>
-                    <div className="w-full h-4 bg-gray-700 rounded" />
+                    <span className="text-xs font-medium text-gray-900">{config.label}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2 items-center">
-                <div className={cn(
-                  "w-4 h-4 border-2 rounded-full flex items-center justify-center",
-                  settings.theme === 'purple' ? "border-blue-500 bg-blue-500" : "border-gray-300"
-                )}>
-                  {settings.theme === 'purple' && (
-                    <Check className="w-2 h-2 text-white" />
-                  )}
-                </div>
-                <span className="text-xs font-medium text-gray-900">深色</span>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
 
         {/* 功能设置 */}
-        <section className="space-y-4">
-          {/* 分组设置 */}
-          <div className="flex justify-between items-center py-2">
-            <div className="flex gap-3 items-center">
-              <div className={cn(
-                "w-6 h-3 bg-blue-500 rounded-full p-0.5 cursor-pointer transition-colors",
-                "flex items-center"
-              )}>
-                <div className="ml-auto w-2 h-2 bg-white rounded-full" />
-              </div>
-              <span className="text-sm font-medium text-gray-900">分组</span>
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-xs text-gray-600">按状态</span>
-              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+        <section>
+          <div className="mb-4">
+            <h3 className="flex gap-2 items-center mb-1 text-sm font-medium text-gray-900">
+              <Settings size={16} />
+              功能设置
+            </h3>
           </div>
 
-          {/* 排序设置 */}
-          <div className="flex justify-between items-center py-2">
-            <div className="flex gap-3 items-center">
-              <div className={cn(
-                "w-6 h-3 bg-blue-500 rounded-full p-0.5 cursor-pointer transition-colors",
-                "flex items-center"
-              )}>
-                <div className="ml-auto w-2 h-2 bg-white rounded-full" />
-              </div>
-              <span className="text-sm font-medium text-gray-900">排序</span>
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-xs text-gray-600">最后创建</span>
-              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
+          <div className="space-y-4">
 
-          {/* 显示子项目 */}
-          <div className="flex justify-between items-center py-2">
-            <div className="flex gap-3 items-center">
-              <div className={cn(
-                "w-6 h-3 bg-blue-500 rounded-full p-0.5 cursor-pointer transition-colors",
-                "flex items-center"
-              )}>
-                <div className="ml-auto w-2 h-2 bg-white rounded-full" />
+            {/* 隐私设置 */}
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <div className="flex gap-3 items-center mb-3">
+                <Shield size={16} className="text-red-600" />
+                <h4 className="text-sm font-medium text-gray-900">隐私设置</h4>
               </div>
-              <span className="text-sm font-medium text-gray-900">显示子项目</span>
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-xs text-gray-600">所有子项目</span>
-              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+
+              <div className="space-y-3">
+                <Toggle
+                  description="通过邮件接收产品更新和重要通知"
+                  defaultChecked
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -354,42 +485,39 @@ function SettingsContent() {
       </div>
 
       {/* 底部操作按钮 */}
-      <div className="sticky bottom-0 p-6 border-t border-gray-200 backdrop-blur-sm bg-white/80">
+      <div className="absolute inset-x-0 bottom-0 p-4 w-full border-t border-gray-200 backdrop-blur-sm bg-white/80">
         <div className="flex justify-between items-center">
-          <button
-            className="text-sm text-gray-600 transition-colors hover:text-gray-800"
-            onClick={() => {
-              // 重置为默认设置
-              handleUpdateSetting('theme', 'blue')
-              handleUpdateSetting('language', 'zh-CN')
-              handleUpdateSetting('fontSize', 'medium')
-            }}
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<RotateCcw size={16} />}
+            onClick={handleResetToDefaults}
           >
             重置为默认
-          </button>
+          </Button>
           <div className="flex gap-3">
-            <button className="px-4 py-2 text-sm text-gray-600 rounded-md border border-gray-300 transition-colors hover:bg-gray-50">
-              取消
-            </button>
-            <button
-              className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md transition-colors hover:bg-blue-700"
-              disabled={updateSettings.isPending}
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Download size={16} />}
+              loading={isDownloading}
+              onClick={handleDownloadFromCloud}
             >
-              {updateSettings.isPending ? '保存中...' : '保存更改'}
-            </button>
+              从云端加载
+            </Button>
+            <Button
+              size="sm"
+              icon={<Upload size={16} />}
+              loading={isUploading}
+              onClick={handleUploadToCloud}
+            >
+              上传到云端
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* 状态提示 */}
-      {updateSettings.isPending && (
-        <div className="fixed right-4 bottom-4 z-50">
-          <div className="flex gap-2 items-center px-3 py-2 text-sm text-white bg-blue-600 rounded-lg shadow-lg">
-            <RefreshCw className="w-4 h-4 animate-spin" />
-            <span>保存设置中...</span>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }

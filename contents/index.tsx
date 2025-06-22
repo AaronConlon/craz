@@ -1,10 +1,11 @@
-import { useState, Suspense, useEffect } from "react"
+import { useState, Suspense, useEffect, useRef } from "react"
 import cssText from "data-text:~style.css"
 import sonnerCssText from "data-text:~sonner.css"
 import { Toaster } from "sonner"
 import { ReactQueryProvider, SuspenseLoader, ErrorBoundary } from "~source/components"
 import { TabSwitcher } from "~source/features/tab-switcher"
 import { eventStoppers, keyCheckers } from "~source/shared/utils"
+import { ThemeProvider } from "~source/shared/components"
 
 export const getStyle = () => {
   const style = document.createElement("style")
@@ -14,6 +15,7 @@ export const getStyle = () => {
 
 export default function ContentUI() {
   const [opened, setOpened] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   // 防止背景页面滚动
   useEffect(() => {
@@ -93,36 +95,41 @@ export default function ContentUI() {
       <ReactQueryProvider>
         <ErrorBoundary onClose={() => setOpened(false)}>
           <Suspense fallback={<SuspenseLoader />}>
-            {/* 毛玻璃遮罩背景 */}
-            <div
-              className="fixed inset-0 z-[9999998] glass-overlay"
-            />
-            {/* 居中的 TabSwitcher */}
-            <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4"
-              onClick={() => {
-                setOpened(false)
-              }}
-            >
+            <div ref={containerRef}>
+              {/* 毛玻璃遮罩背景 */}
               <div
-                {...eventStoppers.keyboard}
-                onClick={eventStoppers.stop}
-                className="rounded-2xl max-w-4xl w-full h-[520px] 2xl:h-[720px] max-h-[80vh] z-[99999999] relative"
-              >
-                <TabSwitcher onClose={() => setOpened(false)} />
-              </div>
+                className="fixed inset-0 z-[9999998] glass-overlay"
+              />
+              <ThemeProvider containerRef={containerRef}>
+                {/* 居中的 TabSwitcher */}
+                <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4"
+                  onClick={() => {
+                    setOpened(false)
+                  }}
+                >
+                  <div
+                    {...eventStoppers.keyboard}
+                    onClick={eventStoppers.stop}
+                    className="z-[99999999] relative rounded-lg shadow-md shadow-[#e5eefa]"
+                  >
+                    <TabSwitcher onClose={() => setOpened(false)} />
+                  </div>
+                </div>
+              </ThemeProvider>
+              {/* Sonner Toast组件 - 放在最外层确保在最顶层 */}
+              <Toaster
+                position="top-right"
+                expand={false}
+                visibleToasts={5}
+                className="toast-top-layer"
+                toastOptions={{
+                  duration: 2500,
+                }}
+              />
             </div>
           </Suspense>
         </ErrorBoundary>
-        {/* Sonner Toast组件 - 放在最外层确保在最顶层 */}
-        <Toaster
-          position="top-right"
-          expand={false}
-          visibleToasts={5}
-          className="toast-top-layer"
-          toastOptions={{
-            duration: 2500,
-          }}
-        />
+
       </ReactQueryProvider>
     )
   }

@@ -61,7 +61,7 @@ export function EmptyState({
 
       {/* 标题 */}
       <h3 className={cn(
-        'text-lg font-medium text-gray-900 mb-2',
+        'mb-2 text-lg font-medium text-gray-900',
         titleClassName
       )}>
         {title}
@@ -70,7 +70,7 @@ export function EmptyState({
       {/* 描述 */}
       {description && (
         <p className={cn(
-          'text-sm text-gray-600 max-w-sm',
+          'max-w-sm text-sm text-gray-600',
           descriptionClassName
         )}>
           {description}

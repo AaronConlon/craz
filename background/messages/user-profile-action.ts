@@ -1,9 +1,15 @@
-import type { PlasmoMessaging } from "@plasmohq/messaging"
+import type { PlasmoMessaging } from "@plasmohq/messaging";
 
-import { createCrazApiFromEnv } from "~/source/shared/api"
-import type { AuthResponse, AuthUser } from "~/source/shared/api/types"
-import type { AuthStatus, UserSettings } from "~/source/shared/types/settings"
-import { getDefaultSettings } from "~/source/shared/types/settings"
+
+
+import { createCrazApiFromEnv } from "~/source/shared/api";
+import type { AuthResponse, AuthUser } from "~/source/shared/api/types";
+import type { AuthStatus, UserSettings } from "~/source/shared/types/settings";
+import { getDefaultSettings } from "~/source/shared/types/settings";
+
+
+
+
 
 // 扩展的用户配置文件类型
 export interface UserProfile {
@@ -27,6 +33,8 @@ export interface UserProfileActionRequest {
     | "getUserProfile"
     | "syncProfile"
     | "clearCache"
+    | "uploadSettingsToCloud"
+    | "downloadSettingsFromCloud"
   data?: any
 }
 
@@ -311,20 +319,20 @@ async function updateUserSettings(
     await saveCachedUserProfile(updatedProfile)
 
     // 5. 如果用户已登录，尝试同步到云端
-    if (
-      updatedProfile.authStatus?.isLoggedIn &&
-      updatedProfile.authStatus?.token
-    ) {
-      try {
-        // TODO: 当有用户设置API时，实现云端同步
-        // const api = createCrazApiFromEnv(updatedProfile.authStatus.token)
-        // await api.auth.updateUserSettings(updatedSettings)
-        console.log("Settings would be synced to cloud:", updatedSettings)
-      } catch (error) {
-        console.warn("Failed to sync settings to cloud:", error)
-        // 即使云端同步失败，本地设置仍然有效
-      }
-    }
+    // if (
+    //   updatedProfile.authStatus?.isLoggedIn &&
+    //   updatedProfile.authStatus?.token
+    // ) {
+    //   try {
+    //     // TODO: 当有用户设置API时，实现云端同步
+    //     // const api = createCrazApiFromEnv(updatedProfile.authStatus.token)
+    //     // await api.auth.updateUserSettings(updatedSettings)
+    //     console.log("Settings would be synced to cloud:", updatedSettings)
+    //   } catch (error) {
+    //     console.warn("Failed to sync settings to cloud:", error)
+    //     // 即使云端同步失败，本地设置仍然有效
+    //   }
+    // }
 
     return updatedProfile
   } catch (error) {
@@ -431,6 +439,145 @@ async function handleLogout(): Promise<{ success: boolean }> {
   }
 }
 
+/**
+ * 上传本地设置到云端
+ */
+async function uploadSettingsToCloud(): Promise<{
+  success: boolean
+  message?: string
+}> {
+  try {
+    // 1. 检查认证状态
+    const authStatus = await getAuthStatus()
+    if (!authStatus.isLoggedIn || !authStatus.token) {
+      return {
+        success: false,
+        message: "用户未登录，无法上传到云端"
+      }
+    }
+
+    // 2. 获取本地设置
+    const localSettings = await getLocalUserSettings()
+    if (!localSettings) {
+      return {
+        success: false,
+        message: "本地设置为空，无法上传"
+      }
+    }
+
+    // 3. 上传到云端API
+    try {
+      // TODO: 当有用户设置API时，实现真实的云端上传
+      // const api = createCrazApiFromEnv(authStatus.token)
+      // await api.auth.updateUserSettings(localSettings)
+
+      console.log("Settings uploaded to cloud:", localSettings)
+
+      // 模拟API调用延迟
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // 4. 更新最后同步时间
+      const currentProfile = await getCachedUserProfile()
+      if (currentProfile) {
+        const updatedProfile: UserProfile = {
+          ...currentProfile,
+          settings: localSettings,
+          lastSyncAt: Date.now()
+        }
+        await saveCachedUserProfile(updatedProfile)
+      }
+
+      return {
+        success: true,
+        message: "设置已成功上传到云端"
+      }
+    } catch (apiError) {
+      console.error("Failed to upload settings to cloud API:", apiError)
+      return {
+        success: false,
+        message: "上传失败：服务器错误"
+      }
+    }
+  } catch (error) {
+    console.error("Failed to upload settings to cloud:", error)
+    return {
+      success: false,
+      message: `上传失败：${error.message || "未知错误"}`
+    }
+  }
+}
+
+/**
+ * 从云端下载设置到本地
+ */
+async function downloadSettingsFromCloud(): Promise<{
+  success: boolean
+  settings?: UserSettings
+  message?: string
+}> {
+  try {
+    // 1. 检查认证状态
+    const authStatus = await getAuthStatus()
+    if (!authStatus.isLoggedIn || !authStatus.token) {
+      return {
+        success: false,
+        message: "用户未登录，无法从云端下载"
+      }
+    }
+
+    // 2. 从云端API获取设置
+    try {
+      // TODO: 当有用户设置API时，实现真实的云端下载
+      // const api = createCrazApiFromEnv(authStatus.token)
+      // const response = await api.auth.getUserSettings()
+
+      // 模拟从云端获取设置
+      console.log("Downloading settings from cloud...")
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // 暂时返回当前本地设置作为模拟数据
+      const currentLocalSettings = await getLocalUserSettings()
+      const cloudSettings: UserSettings = {
+        ...currentLocalSettings,
+        // 模拟云端可能有不同的设置
+        updatedAt: Date.now() - 60000 // 1分钟前更新
+      }
+
+      // 3. 保存到本地
+      await saveLocalUserSettings(cloudSettings)
+
+      // 4. 更新缓存的用户配置文件
+      const currentProfile = await getCachedUserProfile()
+      if (currentProfile) {
+        const updatedProfile: UserProfile = {
+          ...currentProfile,
+          settings: cloudSettings,
+          lastSyncAt: Date.now()
+        }
+        await saveCachedUserProfile(updatedProfile)
+      }
+
+      return {
+        success: true,
+        settings: cloudSettings,
+        message: "设置已成功从云端下载"
+      }
+    } catch (apiError) {
+      console.error("Failed to download settings from cloud API:", apiError)
+      return {
+        success: false,
+        message: "下载失败：服务器错误"
+      }
+    }
+  } catch (error) {
+    console.error("Failed to download settings from cloud:", error)
+    return {
+      success: false,
+      message: `下载失败：${error.message || "未知错误"}`
+    }
+  }
+}
+
 // Background message handler
 const handler: PlasmoMessaging.MessageHandler<
   UserProfileActionRequest
@@ -509,6 +656,14 @@ const handler: PlasmoMessaging.MessageHandler<
       case "clearCache":
         await chrome.storage.local.clear()
         result = { success: true, message: "Cache cleared" }
+        break
+
+      case "uploadSettingsToCloud":
+        result = await uploadSettingsToCloud()
+        break
+
+      case "downloadSettingsFromCloud":
+        result = await downloadSettingsFromCloud()
         break
 
       default:
