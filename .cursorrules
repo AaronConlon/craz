@@ -54,11 +54,60 @@
 - 使用 interface 而非 type (除非需要联合类型)
 - 优先使用具名导出而非默认导出
 
-### 样式 - Tailwind CSS v3
+### 样式 - Tailwind CSS v3.4
 - 使用 Tailwind CSS 进行样式编写
 - 避免内联样式，优先使用 Tailwind 类名
 - 复杂样式可以提取为组件或使用 @apply 指令
 - 响应式设计使用 Tailwind 断点前缀
+
+#### 深色模式支持 - 🌓 CRITICAL
+**项目使用 `data-appearance` 属性控制深色模式，所有 UI 组件必须考虑深色模式适配**
+
+**配置要求**:
+- Tailwind 配置: `darkMode: ['selector', '[data-appearance="dark"] &']`
+- 深色模式通过 `data-appearance="dark"` 属性触发
+- 浅色模式通过 `data-appearance="light"` 属性触发
+
+**UI 开发强制要求**:
+1. **每个组件都必须提供深色模式变体**
+2. **为所有背景色、文字色、边框色添加 `dark:` 前缀类名**
+3. **确保深色模式下的对比度符合可访问性标准**
+
+**标准深色模式类名模式**:
+```typescript
+// ✅ 正确示例 - 必须同时提供浅色和深色变体
+<div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700">
+  内容
+</div>
+
+// ❌ 错误示例 - 缺少深色模式变体
+<div className="bg-white text-gray-900 border-gray-200">
+  内容
+</div>
+```
+
+**常用深色模式颜色搭配**:
+- 背景: `bg-white dark:bg-gray-900` / `bg-gray-50 dark:bg-gray-800`
+- 文字: `text-gray-900 dark:text-white` / `text-gray-600 dark:text-gray-300`
+- 边框: `border-gray-200 dark:border-gray-700` / `border-gray-300 dark:border-gray-600`
+- 卡片: `bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700`
+- 输入框: `bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400`
+
+**与主题色系统结合**:
+```typescript
+// 推荐：在深色模式下使用不同的主题色级别
+<div className="bg-theme-primary-50 dark:bg-theme-primary-900 text-theme-primary-900 dark:text-theme-primary-100">
+  主题色内容
+</div>
+```
+
+**交互状态处理**:
+```typescript
+// 悬停和焦点状态也需要深色变体
+<button className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white">
+  按钮
+</button>
+```
 
 ### 图标 - Lucide React
 - 统一使用 lucide-react 图标库
@@ -145,6 +194,8 @@
 ## 示例代码结构
 
 ### 组件示例
+
+#### 支持深色模式的按钮组件
 ```typescript
 // components/Button/Button.tsx
 import { ButtonHTMLAttributes, forwardRef } from 'react'
@@ -161,9 +212,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center rounded-md font-medium',
-          variant === 'primary' && 'bg-blue-600 text-white hover:bg-blue-700',
-          variant === 'secondary' && 'bg-gray-200 text-gray-900 hover:bg-gray-300',
+          // 基础样式
+          'inline-flex items-center justify-center rounded-md font-medium transition-colors',
+          // 主要按钮 - 包含深色模式变体
+          variant === 'primary' && [
+            'bg-theme-primary-500 text-white',
+            'hover:bg-theme-primary-600',
+            'dark:bg-theme-primary-600 dark:hover:bg-theme-primary-700',
+            'border border-theme-primary-500 dark:border-theme-primary-600'
+          ],
+          // 次要按钮 - 包含深色模式变体
+          variant === 'secondary' && [
+            'bg-gray-100 text-gray-900 border border-gray-300',
+            'hover:bg-gray-200 hover:border-gray-400',
+            'dark:bg-gray-700 dark:text-white dark:border-gray-600',
+            'dark:hover:bg-gray-600 dark:hover:border-gray-500'
+          ],
+          // 尺寸变体
           size === 'sm' && 'h-8 px-3 text-sm',
           size === 'md' && 'h-10 px-4',
           size === 'lg' && 'h-12 px-6 text-lg',
@@ -174,6 +239,42 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     )
   }
 )
+```
+
+#### 支持深色模式的卡片组件
+```typescript
+// components/Card/Card.tsx
+import { ReactNode } from 'react'
+import { cn } from '~/shared/utils'
+
+interface CardProps {
+  children: ReactNode
+  className?: string
+  title?: string
+}
+
+export function Card({ children, className, title }: CardProps) {
+  return (
+    <div className={cn(
+      // 基础样式
+      'rounded-lg p-4 transition-colors',
+      // 浅色模式样式
+      'bg-white border border-gray-200 shadow-sm',
+      // 深色模式样式
+      'dark:bg-gray-800 dark:border-gray-700',
+      className
+    )}>
+      {title && (
+        <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+          {title}
+        </h3>
+      )}
+      <div className="text-gray-600 dark:text-gray-300">
+        {children}
+      </div>
+    </div>
+  )
+}
 ```
 
 ### Background 消息处理示例
@@ -225,4 +326,58 @@ export const useApiData = () => {
 }
 ```
 
-遵循这些规则，保持代码的一致性、可读性和可维护性。 
+## 深色模式开发检查清单
+
+### 🔍 组件开发前检查
+- [ ] 组件是否包含背景色？需要添加 `dark:bg-*` 变体
+- [ ] 组件是否包含文字？需要添加 `dark:text-*` 变体  
+- [ ] 组件是否包含边框？需要添加 `dark:border-*` 变体
+- [ ] 组件是否有交互状态（hover/focus）？需要添加对应的深色变体
+- [ ] 是否使用了主题色？确保在深色模式下使用合适的级别
+
+### 🎨 常用深色模式模式
+```typescript
+// 页面容器
+<div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+
+// 内容区域  
+<div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+
+// 标题文字
+<h1 className="text-gray-900 dark:text-white">
+
+// 正文内容
+<p className="text-gray-600 dark:text-gray-300">
+
+// 输入框
+<input className="bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400" />
+
+// 按钮（次要）
+<button className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600">
+
+// 分隔线
+<div className="border-t border-gray-200 dark:border-gray-700">
+```
+
+### 🛠️ 调试深色模式
+```javascript
+// 浏览器控制台中测试深色模式切换
+document.documentElement.setAttribute('data-appearance', 'dark')
+document.documentElement.setAttribute('data-appearance', 'light')
+```
+
+### ⚠️ 常见错误避免
+1. **忘记添加深色变体** - 每个颜色类都需要对应的 `dark:` 变体
+2. **对比度不足** - 确保深色模式下文字和背景有足够对比度
+3. **主题色级别错误** - 深色模式下通常使用更浅的主题色级别
+4. **遗漏交互状态** - hover、focus、active 状态也需要深色变体
+5. **透明度处理** - 如 `bg-white/80` 需要对应 `dark:bg-gray-800/80`
+
+### 📝 Code Review 检查点
+- [ ] 新增组件是否支持深色模式？
+- [ ] 颜色对比度是否符合 WCAG AA 标准？
+- [ ] 是否正确使用了主题色系统？
+- [ ] 交互状态在深色模式下是否清晰可见？
+- [ ] 是否有遗漏的深色模式类名？
+
+遵循这些规则，保持代码的一致性、可读性和可维护性。确保所有 UI 组件都能在浅色和深色模式下完美呈现。
