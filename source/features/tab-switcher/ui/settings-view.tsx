@@ -42,10 +42,10 @@ class SettingsErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col justify-center items-center h-64 text-center">
-          <AlertCircle className="mb-4 w-12 h-12 text-red-500" />
-          <h3 className="mb-2 text-lg font-semibold text-gray-800">设置加载失败</h3>
-          <p className="mb-4 text-sm text-gray-600">
+        <div className="flex flex-col justify-center items-center h-64 text-center bg-white dark:bg-gray-900">
+          <AlertCircle className="mb-4 w-12 h-12 text-red-500 dark:text-red-400" />
+          <h3 className="mb-2 text-lg font-semibold text-gray-800 dark:text-gray-100">设置加载失败</h3>
+          <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
             {this.state.error?.message || '未知错误'}
           </p>
           <Button
@@ -67,15 +67,15 @@ class SettingsErrorBoundary extends Component<
 // 加载状态组件
 function SettingsLoadingSkeleton() {
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-6 space-y-8 bg-gray-50 dark:bg-gray-900">
       <div className="flex gap-3 items-center">
-        <div className="w-5 h-5 bg-gray-200 rounded animate-pulse" />
-        <div className="w-20 h-5 bg-gray-200 rounded animate-pulse" />
+        <div className="w-5 h-5 bg-gray-200 rounded animate-pulse dark:bg-gray-700" />
+        <div className="w-20 h-5 bg-gray-200 rounded animate-pulse dark:bg-gray-700" />
       </div>
       {[...Array(3)].map((_, i) => (
         <div key={i} className="space-y-4">
-          <div className="w-32 h-4 bg-gray-200 rounded animate-pulse" />
-          <div className="w-full h-10 bg-gray-200 rounded animate-pulse" />
+          <div className="w-32 h-4 bg-gray-200 rounded animate-pulse dark:bg-gray-700" />
+          <div className="w-full h-10 bg-gray-200 rounded animate-pulse dark:bg-gray-700" />
         </div>
       ))}
     </div>
@@ -274,15 +274,15 @@ function SettingsContent() {
       <div className="flex sticky top-0 z-10 justify-between items-center border-b border-gray-200 backdrop-blur-sm dark:border-gray-700 bg-white/80 dark:bg-gray-800/80">
         <div className="flex justify-between items-center px-6 py-4">
           <div className="flex gap-3 items-center">
-            <Settings className="text-gray-700" size={20} />
+            <Settings className="text-gray-700 dark:text-gray-300" size={20} />
             <h1 className="text-lg font-semibold text-gray-900 dark:text-white">设置</h1>
           </div>
 
           {isFetching && (
-            <RefreshCw className="w-4 h-4 animate-spin text-theme-primary-600" />
+            <RefreshCw className="w-4 h-4 animate-spin text-theme-primary-600 dark:text-theme-primary-400" />
           )}
         </div>
-        <p className="p-4 text-sm text-theme-primary-600">
+        <p className="p-4 text-sm text-theme-primary-600 dark:text-theme-primary-400">
           自由定义您的浏览器体验 🚀🚀🚀
         </p>
       </div>
@@ -315,13 +315,15 @@ function SettingsContent() {
                 key={mode}
                 className={cn(
                   "relative p-3 bg-white dark:bg-gray-800 border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
-                  currentSettings.appearanceMode === mode ? "border-theme-primary-500 bg-theme-primary-50 dark:bg-theme-primary-900" : "border-gray-200 dark:border-gray-600 hover:border-theme-primary-200 dark:hover:border-theme-primary-400"
+                  currentSettings.appearanceMode === mode
+                    ? "border-theme-primary-500 dark:border-theme-primary-400 bg-theme-primary-50 dark:bg-theme-primary-900"
+                    : "border-gray-200 dark:border-gray-600 hover:border-theme-primary-200 dark:hover:border-theme-primary-400"
                 )}
                 onClick={() => handleAppearanceModeChange(mode as AppearanceMode)}
               >
                 <div className="mb-3">
                   <div className={cn(
-                    "overflow-hidden w-full h-16 rounded border",
+                    "overflow-hidden w-full h-16 rounded border border-gray-200 dark:border-gray-600",
                     mode === 'light' && "bg-white",
                     mode === 'dark' && "bg-gray-900",
                     mode === 'system' && "bg-gradient-to-br from-gray-100 to-gray-900"
@@ -360,7 +362,9 @@ function SettingsContent() {
                 <div className="flex gap-2 items-center">
                   <div className={cn(
                     "w-4 h-4 border-2 rounded-full flex items-center justify-center",
-                    currentSettings.appearanceMode === mode ? "border-theme-primary-500 bg-theme-primary-500" : "border-gray-300"
+                    currentSettings.appearanceMode === mode
+                      ? "border-theme-primary-500 dark:border-theme-primary-400 bg-theme-primary-500 dark:bg-theme-primary-400"
+                      : "border-gray-300 dark:border-gray-500"
                   )}>
                     {currentSettings.appearanceMode === mode && (
                       <Check className="w-2 h-2 text-white" />
@@ -376,8 +380,8 @@ function SettingsContent() {
         {/* 语言设置 */}
         <section>
           <div className="mb-4">
-            <h3 className="flex gap-2 items-center mb-1 text-sm font-medium text-gray-900">
-              <Globe size={16} />
+            <h3 className="flex gap-2 items-center mb-1 text-sm font-medium text-gray-900 dark:text-white">
+              <Globe size={16} className="text-gray-700 dark:text-gray-300" />
               语言
             </h3>
           </div>
@@ -387,21 +391,25 @@ function SettingsContent() {
               <div
                 key={lang}
                 className={cn(
-                  "relative p-3 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
-                  currentSettings.language === lang ? "border-theme-primary-500 bg-theme-primary-50" : "border-gray-200 hover:border-theme-primary-200"
+                  "relative p-3 bg-white dark:bg-gray-800 border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
+                  currentSettings.language === lang
+                    ? "border-theme-primary-500 dark:border-theme-primary-400 bg-theme-primary-50 dark:bg-theme-primary-900"
+                    : "border-gray-200 dark:border-gray-600 hover:border-theme-primary-200 dark:hover:border-theme-primary-400"
                 )}
                 onClick={() => handleLanguageChange(lang as Language)}
               >
                 <div className="flex gap-2 items-center">
                   <div className={cn(
                     "w-4 h-4 border-2 rounded-full flex items-center justify-center",
-                    currentSettings.language === lang ? "border-theme-primary-500 bg-theme-primary-500" : "border-gray-300"
+                    currentSettings.language === lang
+                      ? "border-theme-primary-500 dark:border-theme-primary-400 bg-theme-primary-500 dark:bg-theme-primary-400"
+                      : "border-gray-300 dark:border-gray-500"
                   )}>
                     {currentSettings.language === lang && (
                       <Check className="w-2 h-2 text-white" />
                     )}
                   </div>
-                  <span className="text-sm font-medium text-gray-900">{label}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
                 </div>
               </div>
             ))}
@@ -411,8 +419,8 @@ function SettingsContent() {
         {/* 字体大小设置 */}
         <section>
           <div className="mb-4">
-            <h3 className="flex gap-2 items-center mb-1 text-sm font-medium text-gray-900">
-              <Type size={16} />
+            <h3 className="flex gap-2 items-center mb-1 text-sm font-medium text-gray-900 dark:text-white">
+              <Type size={16} className="text-gray-700 dark:text-gray-300" />
               字体大小
             </h3>
           </div>
@@ -422,15 +430,17 @@ function SettingsContent() {
               <div
                 key={size}
                 className={cn(
-                  "relative p-4 bg-white border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
-                  currentSettings.fontSize === size ? "border-theme-primary-500 bg-theme-primary-50" : "border-gray-200 hover:border-theme-primary-200"
+                  "relative p-4 bg-white dark:bg-gray-800 border-2 rounded-lg cursor-pointer transition-all hover:shadow-sm",
+                  currentSettings.fontSize === size
+                    ? "border-theme-primary-500 dark:border-theme-primary-400 bg-theme-primary-50 dark:bg-theme-primary-900"
+                    : "border-gray-200 dark:border-gray-600 hover:border-theme-primary-200 dark:hover:border-theme-primary-400"
                 )}
                 onClick={() => handleFontSizeChange(size as FontSize)}
               >
                 <div className="text-center">
                   <div className="mb-2">
                     <span
-                      className="font-medium text-gray-900"
+                      className="font-medium text-gray-900 dark:text-white"
                       style={{ fontSize: config.size }}
                     >
                       Aa
@@ -439,13 +449,15 @@ function SettingsContent() {
                   <div className="flex gap-2 justify-center items-center">
                     <div className={cn(
                       "w-4 h-4 border-2 rounded-full flex items-center justify-center",
-                      currentSettings.fontSize === size ? "border-theme-primary-500 bg-theme-primary-500" : "border-gray-300"
+                      currentSettings.fontSize === size
+                        ? "border-theme-primary-500 dark:border-theme-primary-400 bg-theme-primary-500 dark:text-white"
+                        : "border-gray-300 dark:border-gray-500"
                     )}>
                       {currentSettings.fontSize === size && (
                         <Check className="w-2 h-2 text-white" />
                       )}
                     </div>
-                    <span className="text-xs font-medium text-gray-900">{config.label}</span>
+                    <span className="text-xs font-medium text-gray-900 dark:text-white">{config.label}</span>
                   </div>
                 </div>
               </div>
@@ -456,8 +468,8 @@ function SettingsContent() {
         {/* 功能设置 */}
         <section>
           <div className="mb-4">
-            <h3 className="flex gap-2 items-center mb-1 text-sm font-medium text-gray-900">
-              <Settings size={16} />
+            <h3 className="flex gap-2 items-center mb-1 text-sm font-medium text-gray-900 dark:text-white">
+              <Settings size={16} className="text-gray-700 dark:text-gray-300" />
               功能设置
             </h3>
           </div>
@@ -465,10 +477,10 @@ function SettingsContent() {
           <div className="space-y-4">
 
             {/* 隐私设置 */}
-            <div className="p-4 bg-white rounded-lg border border-gray-200">
+            <div className="p-4 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
               <div className="flex gap-3 items-center mb-3">
-                <Shield size={16} className="text-red-600" />
-                <h4 className="text-sm font-medium text-gray-900">隐私设置</h4>
+                <Shield size={16} className="text-theme-primary-600 dark:text-theme-primary-400" />
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">隐私设置</h4>
               </div>
 
               <div className="space-y-3">
@@ -485,10 +497,10 @@ function SettingsContent() {
       </div>
 
       {/* 底部操作按钮 */}
-      <div className="absolute inset-x-0 bottom-0 p-4 w-full border-t border-gray-200 backdrop-blur-sm bg-white/80">
+      <div className="absolute inset-x-0 bottom-0 p-4 w-full border-t border-gray-200 backdrop-blur-sm dark:border-gray-700 bg-white/80 dark:bg-gray-800/80">
         <div className="flex justify-between items-center">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             icon={<RotateCcw size={16} />}
             onClick={handleResetToDefaults}

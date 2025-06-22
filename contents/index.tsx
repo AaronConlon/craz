@@ -110,7 +110,7 @@ export default function ContentUI() {
                   <div
                     {...eventStoppers.keyboard}
                     onClick={eventStoppers.stop}
-                    className="z-[99999999] relative rounded-lg shadow-md shadow-[#e5eefa]"
+                    className="z-[99999999] relative rounded-lg shadow-md shadow-[#e5eefa] text-gray-800 dark:text-gray-100"
                   >
                     <TabSwitcher onClose={() => setOpened(false)} />
                   </div>

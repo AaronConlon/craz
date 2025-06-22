@@ -40,8 +40,8 @@ const Toggle = forwardRef<HTMLInputElement, ToggleProps>(
       return (
         <div className="flex justify-between items-center">
           <div>
-            {label && <p className="text-sm text-gray-900">{label}</p>}
-            {description && <p className="text-xs text-gray-600">{description}</p>}
+            {label && <p className="text-sm text-gray-900 dark:text-white">{label}</p>}
+            {description && <p className="text-xs text-gray-600 dark:text-gray-400">{description}</p>}
           </div>
           {toggle}
         </div>
