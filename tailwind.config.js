@@ -107,7 +107,7 @@ module.exports = {
         // 毛玻璃容器 - 用于主要容器
         '.glass-container': {
           'background': 'linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1))',
-          'backdrop-filter': 'blur(20px)',
+          'backdrop-filter': 'blur(10px)',
           'border': '1px solid rgba(255, 255, 255, 0.3)',
           'box-shadow': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         },
@@ -126,7 +126,7 @@ module.exports = {
         // 毛玻璃遮罩
         '.glass-overlay': {
           'background': 'linear-gradient(135deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3))',
-          'backdrop-filter': 'blur(4px)',
+          'backdrop-filter': 'blur(2px)',
         },
         // 毛玻璃按钮悬停效果
         '.glass-hover': {

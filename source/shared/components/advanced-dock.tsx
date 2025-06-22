@@ -90,6 +90,9 @@ export function AdvancedDock({
 
         {/* 右侧固定 favicon */}
         <div className="flex gap-1 items-center">
+
+          {/* 提供 dark mode 切换的功能，点击图标，弹出 popup 菜单选择 dark mode */}
+
           {/* {loading ? (
             // 加载状态
             Array.from({ length: 5 }).map((_, index) => (

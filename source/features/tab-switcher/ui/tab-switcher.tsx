@@ -16,7 +16,7 @@ interface TabSwitcherProps {
 }
 
 export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
-  const [activeView, setActiveView] = useState<ViewMode>('settings')
+  const [activeView, setActiveView] = useState<ViewMode>('profile')
   const ref = useRef<HTMLDivElement>(null)
 
   const { data: tabs } = useAllTabs()
