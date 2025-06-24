@@ -37,7 +37,6 @@ export function ProfileView() {
       password: authForm.password
     }, {
       onSuccess: () => {
-        console.log("login success:", ref.current)
         // 登录成功后撒花庆祝
         celebrateSuccess(ref)
       }
@@ -73,23 +72,18 @@ export function ProfileView() {
 
   if (!isLoggedIn) {
     return (
-      <div>
-      <AuthContainer
-        authForm={authForm}
-        setAuthForm={setAuthForm}
-        handleLoginSubmit={handleLoginSubmit}
-        handleRegisterSubmit={handleRegisterSubmit}
-        isLoginMode={isLoginMode}
-        setIsLoginMode={setIsLoginMode}
-        login={login}
-        register={register}
-      />
-        <div className='absolute inset-0 z-[-1] bg-transparent border'>
-          <button onClick={() => {
-            console.log('profile:', user)
-          }}>show reset password</button>
-        </div>
-      </div>
+      <>
+        <AuthContainer
+          authForm={authForm}
+          setAuthForm={setAuthForm}
+          handleLoginSubmit={handleLoginSubmit}
+          handleRegisterSubmit={handleRegisterSubmit}
+          isLoginMode={isLoginMode}
+          setIsLoginMode={setIsLoginMode}
+          login={login}
+          register={register}
+        />
+      </>
     )
   }
 

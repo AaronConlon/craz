@@ -1,15 +1,9 @@
-import type { PlasmoMessaging } from "@plasmohq/messaging";
+import { sendToContentScript, type PlasmoMessaging } from "@plasmohq/messaging"
 
-
-
-import { createCrazApiFromEnv } from "~/source/shared/api";
-import type { AuthResponse, AuthUser } from "~/source/shared/api/types";
-import type { AuthStatus, UserSettings } from "~/source/shared/types/settings";
-import { getDefaultSettings } from "~/source/shared/types/settings";
-
-
-
-
+import { createCrazApiFromEnv } from "~/source/shared/api"
+import type { AuthResponse, AuthUser } from "~/source/shared/api/types"
+import type { AuthStatus, UserSettings } from "~/source/shared/types/settings"
+import { getDefaultSettings } from "~/source/shared/types/settings"
 
 // 扩展的用户配置文件类型
 export interface UserProfile {
@@ -17,6 +11,8 @@ export interface UserProfile {
   settings: UserSettings
   authStatus: AuthStatus
   lastSyncAt: number
+  syncStatus: "syncing" | "synced" | "failed" | "pending"
+  lastSyncError?: string
 }
 
 // 用户配置文件操作请求类型
@@ -35,6 +31,7 @@ export interface UserProfileActionRequest {
     | "clearCache"
     | "uploadSettingsToCloud"
     | "downloadSettingsFromCloud"
+    | "getApiRequestStatus"
   data?: any
 }
 
@@ -49,8 +46,60 @@ const STORAGE_KEYS = {
   USER_PROFILE: "craz-user-profile",
   AUTH_TOKEN: "craz-auth-token",
   USER_SETTINGS: "craz-user-settings",
-  AUTH_STATUS: "craz-auth-status"
+  AUTH_STATUS: "craz-auth-status",
+  LAST_API_REQUEST: "craz-last-api-request-timestamp"
 } as const
+
+// API 请求防重复间隔（5分钟）
+const API_REQUEST_COOLDOWN = 5 * 60 * 1000
+
+/**
+ * 获取最后一次 API 请求的时间戳
+ */
+async function getLastApiRequestTimestamp(): Promise<number> {
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      const result = await chrome.storage.local.get([
+        STORAGE_KEYS.LAST_API_REQUEST
+      ])
+      return result[STORAGE_KEYS.LAST_API_REQUEST] || 0
+    }
+    return 0
+  } catch (error) {
+    console.error("Failed to get last API request timestamp:", error)
+    return 0
+  }
+}
+
+/**
+ * 设置最后一次 API 请求的时间戳
+ */
+async function setLastApiRequestTimestamp(timestamp: number): Promise<void> {
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.LAST_API_REQUEST]: timestamp
+      })
+    }
+  } catch (error) {
+    console.error("Failed to set last API request timestamp:", error)
+  }
+}
+
+/**
+ * 检查是否可以发起 API 请求（防重复请求）
+ */
+async function canMakeApiRequest(): Promise<boolean> {
+  const lastRequestTime = await getLastApiRequestTimestamp()
+  const now = Date.now()
+  const timeSinceLastRequest = now - lastRequestTime
+
+  console.log(
+    `🕐 API 请求检查: 距离上次请求 ${Math.floor(timeSinceLastRequest / 1000)}s (冷却期: ${API_REQUEST_COOLDOWN / 1000}s)`
+  )
+
+  return timeSinceLastRequest >= API_REQUEST_COOLDOWN
+}
 
 /**
  * 从 Chrome Storage 获取缓存的用户配置文件
@@ -187,15 +236,40 @@ async function saveLocalUserSettings(settings: UserSettings): Promise<void> {
 /**
  * 从云端 API 获取用户配置文件
  */
-async function fetchUserProfileFromAPI(token?: string): Promise<UserProfile> {
+async function fetchUserProfileFromAPI(
+  token?: string,
+  forceRequest = false
+): Promise<UserProfile> {
+  const now = Date.now()
+
+  // 检查是否可以发起 API 请求（防重复请求）
+  if (!forceRequest && !(await canMakeApiRequest())) {
+    console.log("🚫 API 请求被跳过（冷却期内），返回缓存数据")
+    const cachedProfile = await getCachedUserProfile()
+    if (cachedProfile) {
+      console.log(
+        "📱 返回缓存的用户配置文件:",
+        cachedProfile.user ? "有用户信息" : "无用户信息"
+      )
+      return cachedProfile
+    }
+    // 如果没有缓存，则允许请求
+    console.log("⚠️ 无缓存数据，强制发起 API 请求")
+  }
+
   try {
+    console.log("🌐 发起 API 请求获取用户配置文件")
+
     const api = createCrazApiFromEnv(token)
-    const now = Date.now()
 
     // 尝试获取用户信息
     let userResponse: AuthResponse
     try {
       userResponse = await api.auth.getCurrentUser()
+      // 只在 API 请求成功时记录时间戳
+      if (userResponse.success) {
+        await setLastApiRequestTimestamp(now)
+      }
     } catch (error) {
       userResponse = { success: false, error: error.message }
     }
@@ -205,6 +279,7 @@ async function fetchUserProfileFromAPI(token?: string): Promise<UserProfile> {
 
     if (userResponse.success && userResponse.user) {
       // 用户已登录
+      console.log("✅ API 返回用户信息:", userResponse.user)
       const userSettings = await getLocalUserSettings()
 
       const authStatus: AuthStatus = {
@@ -219,25 +294,33 @@ async function fetchUserProfileFromAPI(token?: string): Promise<UserProfile> {
         user: userResponse.user,
         settings: userSettings,
         authStatus,
-        lastSyncAt: now
+        lastSyncAt: now,
+        syncStatus: "synced"
       }
 
       // 保存到本地缓存
       await saveCachedUserProfile(profile)
       await saveAuthStatus(authStatus)
 
+      console.log(
+        "💾 用户配置文件已保存到缓存:",
+        profile.user ? "包含用户信息" : "不包含用户信息"
+      )
       return profile
     } else {
       // 用户未登录或获取失败，使用本地数据
+      console.log("❌ API 未返回用户信息或获取失败:", userResponse)
       const settings = await getLocalUserSettings()
       const profile: UserProfile = {
         user: null,
         settings,
         authStatus: { isLoggedIn: false },
-        lastSyncAt: now
+        lastSyncAt: now,
+        syncStatus: "synced"
       }
 
       await saveCachedUserProfile(profile)
+      console.log("💾 保存了空用户配置文件到缓存")
       return profile
     }
   } catch (error) {
@@ -255,7 +338,8 @@ async function fetchUserProfileFromAPI(token?: string): Promise<UserProfile> {
       user: null,
       settings,
       authStatus: { isLoggedIn: false },
-      lastSyncAt: Date.now()
+      lastSyncAt: Date.now(),
+      syncStatus: "synced"
     }
 
     await saveCachedUserProfile(defaultProfile)
@@ -264,29 +348,163 @@ async function fetchUserProfileFromAPI(token?: string): Promise<UserProfile> {
 }
 
 /**
- * 用户配置文件查询函数
- * 优先返回缓存数据，然后在后台同步云端数据
+ * 获取并缓存用户配置文件
+ */
+async function fetchAndCacheUserProfile(
+  forceRefresh = false
+): Promise<UserProfile> {
+  try {
+    console.log(`🌐 从云端获取用户配置文件 (forceRefresh: ${forceRefresh})`)
+
+    // 获取认证状态以传递token
+    const authStatus = await getAuthStatus()
+    const token = authStatus.isLoggedIn ? authStatus.token : undefined
+
+    // 从API获取最新的用户配置文件
+    // 当 forceRefresh 为 true 时，强制发起请求忽略冷却期
+    const profile = await fetchUserProfileFromAPI(token, forceRefresh)
+
+    console.log("✅ 用户配置文件获取成功")
+    return profile
+  } catch (error) {
+    console.error("❌ 获取用户配置文件失败:", error)
+
+    // 失败时尝试返回缓存数据
+    const cachedProfile = await getCachedUserProfile()
+    if (cachedProfile) {
+      console.log("📱 API 失败，返回缓存数据")
+      return {
+        ...cachedProfile,
+        syncStatus: "failed",
+        lastSyncError: error.message
+      }
+    }
+
+    // 如果连缓存都没有，返回默认配置
+    console.log("🔧 无缓存数据，返回默认配置")
+    const settings = await getLocalUserSettings()
+    const defaultProfile: UserProfile = {
+      user: null,
+      settings,
+      authStatus: { isLoggedIn: false },
+      lastSyncAt: Date.now(),
+      syncStatus: "failed",
+      lastSyncError: error.message
+    }
+
+    await saveCachedUserProfile(defaultProfile)
+    return defaultProfile
+  }
+}
+
+/**
+ * 后台异步同步用户配置文件
+ */
+async function syncUserProfileInBackground() {
+  try {
+    console.log("🔄 开始后台同步用户配置文件")
+
+    // 1. 标记同步状态
+    const currentProfile = await getCachedUserProfile()
+    if (currentProfile) {
+      const syncingProfile = {
+        ...currentProfile,
+        syncStatus: "syncing" as const
+      }
+      await saveCachedUserProfile(syncingProfile)
+
+      // 立即通知 UI 同步状态更新
+      await notifyContentScriptProfileUpdate(syncingProfile)
+    }
+
+    // 2. 获取最新数据
+    const updatedProfile = await fetchAndCacheUserProfile()
+
+    console.log("✅ 后台同步完成，通知 content scripts 更新")
+
+    // 3. 通知所有 content scripts 更新数据
+    await notifyContentScriptProfileUpdate(updatedProfile)
+  } catch (error) {
+    console.warn("❌ 后台同步失败，保持本地数据不变:", error)
+
+    // 更新同步状态为失败
+    const currentProfile = await getCachedUserProfile()
+    if (currentProfile) {
+      const failedProfile = {
+        ...currentProfile,
+        syncStatus: "failed" as const,
+        lastSyncError: error.message
+      }
+      await saveCachedUserProfile(failedProfile)
+
+      // 通知 UI 同步失败状态
+      await notifyContentScriptProfileUpdate(failedProfile)
+    }
+  }
+}
+
+/**
+ * 获取用户 Profile - 离线优先策略 + 防重复请求
  */
 async function getUserProfile(forceRefresh = false): Promise<UserProfile> {
   const SYNC_INTERVAL = 5 * 60 * 1000 // 5分钟同步间隔
+  const MAX_CACHE_AGE = 30 * 60 * 1000 // 30分钟最大缓存时间
 
-  if (!forceRefresh) {
-    // 1. 首先尝试获取缓存数据
-    const cachedProfile = await getCachedUserProfile()
+  console.log(`📊 getUserProfile 调用 (forceRefresh: ${forceRefresh})`)
 
-    if (cachedProfile) {
-      const now = Date.now()
+  // 1. 首先尝试获取本地缓存数据
+  const cachedProfile = await getCachedUserProfile()
+  console.log(
+    "📂 获取到的缓存数据:",
+    cachedProfile
+      ? `存在缓存 (user: ${cachedProfile.user ? "有" : "无"})`
+      : "无缓存"
+  )
 
-      // 2. 检查是否需要后台同步
-      if (now - cachedProfile.lastSyncAt < SYNC_INTERVAL) {
-        return cachedProfile
+  if (!forceRefresh && cachedProfile) {
+    const now = Date.now()
+    const cacheAge = now - cachedProfile.lastSyncAt
+
+    // 2. 如果缓存还新鲜（5分钟内），直接返回
+    if (cacheAge < SYNC_INTERVAL) {
+      console.log("📱 返回缓存的用户配置文件（数据新鲜）")
+      return cachedProfile
+    }
+
+    // 3. 检查 API 请求冷却期，防止频繁请求
+    const canRequest = await canMakeApiRequest()
+    if (!canRequest) {
+      console.log("🚫 API 请求在冷却期内，返回缓存数据")
+      return cachedProfile
+    }
+
+    // 4. 缓存过期但不太旧（30分钟内），先返回缓存，后台同步
+    if (cacheAge < MAX_CACHE_AGE) {
+      console.log("📱 使用缓存数据，启动后台同步")
+
+      // 后台异步同步最新数据（延迟以确保立即返回缓存数据）
+      setTimeout(() => syncUserProfileInBackground(), 100)
+
+      return cachedProfile
+    }
+
+    // 5. 缓存太旧，尝试同步更新，失败时仍返回缓存
+    console.log("⏰ 缓存过旧，尝试同步更新")
+    try {
+      return await fetchAndCacheUserProfile(false) // 不强制，遵循冷却期
+    } catch (error) {
+      console.warn("❌ 同步失败，返回过期缓存数据:", error)
+      return {
+        ...cachedProfile,
+        syncStatus: "failed",
+        lastSyncError: error.message
       }
     }
   }
 
-  // 3. 获取token并刷新数据
-  const authStatus = await getAuthStatus()
-  return await fetchUserProfileFromAPI(authStatus.token)
+  // 6. 没有缓存或强制刷新，同步获取最新数据
+  console.log("🌐 没有缓存或强制刷新，同步获取最新数据")
+  return await fetchAndCacheUserProfile(forceRefresh)
 }
 
 /**
@@ -319,7 +537,10 @@ async function updateUserSettings(
 
     await saveCachedUserProfile(updatedProfile)
 
-    // 5. 如果用户已登录，尝试同步到云端
+    // 5. 通知 content scripts 设置已更新
+    await notifyContentScriptProfileUpdate(updatedProfile)
+
+    // 6. 如果用户已登录，尝试同步到云端
     // if (
     //   updatedProfile.authStatus?.isLoggedIn &&
     //   updatedProfile.authStatus?.token
@@ -359,10 +580,18 @@ async function handleLogin(credentials: any): Promise<AuthResponse> {
         expiresAt: Date.now() + 24 * 60 * 60 * 1000
       }
 
+      console.log("🔄 登录后保存的认证状态:", authStatus)
       await saveAuthStatus(authStatus)
 
-      // 登录后立即获取完整配置文件
-      await getUserProfile(true)
+      // 登录后立即获取完整配置文件（强制刷新，绕过冷却期）
+      const updatedProfile = await getUserProfile(true)
+      console.log(
+        "🔄 登录后获取的用户配置文件:",
+        updatedProfile.user ? "包含用户信息" : "不包含用户信息"
+      )
+
+      // 立即通知 content scripts 登录成功
+      await notifyContentScriptProfileUpdate(updatedProfile)
     }
 
     return response
@@ -391,8 +620,15 @@ async function handleRegister(userData: any): Promise<AuthResponse> {
 
       await saveAuthStatus(authStatus)
 
-      // 注册后立即获取完整配置文件
-      await getUserProfile(true)
+      // 注册后立即获取完整配置文件（强制刷新，绕过冷却期）
+      const updatedProfile = await getUserProfile(true)
+      console.log(
+        "🔄 注册后获取的用户配置文件:",
+        updatedProfile.user ? "包含用户信息" : "不包含用户信息"
+      )
+
+      // 立即通知 content scripts 注册成功
+      await notifyContentScriptProfileUpdate(updatedProfile)
     }
 
     return response
@@ -428,7 +664,8 @@ async function handleLogout(): Promise<{ success: boolean }> {
       user: null,
       settings,
       authStatus: { isLoggedIn: false },
-      lastSyncAt: Date.now()
+      lastSyncAt: Date.now(),
+      syncStatus: "synced"
     }
 
     await saveCachedUserProfile(defaultProfile)
@@ -579,13 +816,74 @@ async function downloadSettingsFromCloud(): Promise<{
   }
 }
 
+/**
+ * 向所有 content scripts 发送用户配置文件更新消息
+ */
+async function notifyContentScriptProfileUpdate(profile: UserProfile) {
+  try {
+    console.log("📢 通知 content scripts 用户配置文件已更新")
+
+    // 获取所有活跃的标签页
+    const tabs = await chrome.tabs.query({})
+    let notifiedCount = 0
+    let failedCount = 0
+
+    const notificationPromises = tabs.map(async (tab) => {
+      if (tab.id && tab.url && !tab.url.startsWith("chrome://")) {
+        try {
+          await sendToContentScript({
+            name: "user-profile-updated",
+            body: {
+              profile,
+              timestamp: Date.now(),
+              syncStatus: profile.syncStatus
+            },
+            tabId: tab.id
+          })
+          return { success: true, tabId: tab.id }
+        } catch (error) {
+          // 某些标签页可能没有 content script，这是正常的
+          console.debug(`⚠️ 标签页 ${tab.id} (${tab.url}) 没有 content script`)
+          return { success: false, tabId: tab.id, error: error.message }
+        }
+      }
+      return { success: false, tabId: tab.id, error: "Invalid tab" }
+    })
+
+    // 等待所有通知完成
+    const results = await Promise.allSettled(notificationPromises)
+
+    results.forEach((result) => {
+      if (result.status === "fulfilled") {
+        if (result.value.success) {
+          notifiedCount++
+        } else {
+          failedCount++
+        }
+      } else {
+        failedCount++
+      }
+    })
+
+    console.log(`📊 通知结果: ${notifiedCount} 成功, ${failedCount} 失败`)
+
+    // 如果有成功的通知，说明至少有一些 content scripts 接收到了更新
+    if (notifiedCount > 0) {
+      console.log("✅ 配置文件更新通知发送成功")
+    } else if (failedCount > 0) {
+      console.warn("⚠️ 所有 content script 通知都失败了")
+    }
+  } catch (error) {
+    console.error("❌ 通知 content scripts 失败:", error)
+  }
+}
+
 // Background message handler
 const handler: PlasmoMessaging.MessageHandler<
   UserProfileActionRequest
 > = async (req, res) => {
+  console.log("[Background] User profile action body:", req.body)
   const { action, data } = req.body
-
-  console.log("[Background] User profile action:", action)
 
   try {
     let result: any
@@ -638,12 +936,34 @@ const handler: PlasmoMessaging.MessageHandler<
 
       case "login":
         if (!data) throw new Error("Login credentials are required")
-        result = await handleLogin(data)
+        const loginResponse = await handleLogin(data)
+
+        // 登录成功后，立即获取完整的用户配置文件并返回
+        if (loginResponse.success) {
+          const userProfile = await getUserProfile(true)
+          result = {
+            ...loginResponse,
+            userProfile // 附加完整的用户配置文件
+          }
+        } else {
+          result = loginResponse
+        }
         break
 
       case "register":
         if (!data) throw new Error("Registration data is required")
-        result = await handleRegister(data)
+        const registerResponse = await handleRegister(data)
+
+        // 注册成功后，立即获取完整的用户配置文件并返回
+        if (registerResponse.success) {
+          const userProfile = await getUserProfile(true)
+          result = {
+            ...registerResponse,
+            userProfile // 附加完整的用户配置文件
+          }
+        } else {
+          result = registerResponse
+        }
         break
 
       case "logout":
@@ -656,6 +976,7 @@ const handler: PlasmoMessaging.MessageHandler<
 
       case "clearCache":
         await chrome.storage.local.clear()
+        console.log("🗑️ 缓存已清除，包括 API 请求时间戳")
         result = { success: true, message: "Cache cleared" }
         break
 
@@ -665,6 +986,26 @@ const handler: PlasmoMessaging.MessageHandler<
 
       case "downloadSettingsFromCloud":
         result = await downloadSettingsFromCloud()
+        break
+
+      case "getApiRequestStatus":
+        // 调试功能：获取 API 请求状态
+        const lastRequestTime = await getLastApiRequestTimestamp()
+        const now = Date.now()
+        const timeSinceLastRequest = now - lastRequestTime
+        const canRequest = await canMakeApiRequest()
+
+        result = {
+          lastRequestTime,
+          timeSinceLastRequest,
+          timeSinceLastRequestSeconds: Math.floor(timeSinceLastRequest / 1000),
+          cooldownPeriod: API_REQUEST_COOLDOWN,
+          cooldownPeriodSeconds: API_REQUEST_COOLDOWN / 1000,
+          canMakeRequest: canRequest,
+          timeUntilNextRequest: canRequest
+            ? 0
+            : API_REQUEST_COOLDOWN - timeSinceLastRequest
+        }
         break
 
       default:

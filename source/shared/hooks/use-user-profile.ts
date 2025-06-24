@@ -1,10 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
-import { userProfileAction } from "../api/messages"
-import type { AuthResponse, AuthUser } from "../api/types"
-import type { AuthStatus, UserSettings } from "../types/settings"
-import { getDefaultSettings } from "../types/settings"
+
+
+import { userProfileAction } from "../api/messages";
+import type { AuthResponse, AuthUser } from "../api/types";
+import type { AuthStatus, UserSettings } from "../types/settings";
+import { getDefaultSettings } from "../types/settings";
+
 
 // 用户配置文件类型
 export interface UserProfile {
@@ -27,6 +30,7 @@ export function useUserProfile() {
       const response = await userProfileAction({
         action: "getUserProfile"
       })
+      console.log("getUserProfile response:", response)
 
       if (!response.success) {
         throw new Error(response.error || "获取用户配置文件失败")

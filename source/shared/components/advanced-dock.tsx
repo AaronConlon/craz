@@ -145,7 +145,7 @@ function DockMenuItem({ item, active }: DockMenuItemProps) {
 
         {/* 活动指示器 */}
         {active && (
-          <div className="absolute bottom-[-2px] left-1/2 w-1 h-1 bg-gray-600 rounded-full transform -translate-x-1/2" />
+          <div className="absolute bottom-[-4px] left-1/2 w-1 h-1 bg-theme-primary-500 rounded-full transform -translate-x-1/2" />
         )}
       </div>
 

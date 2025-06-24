@@ -19,7 +19,7 @@ export function ViewContainer({ children, viewMode, className }: ViewContainerPr
         return 'overflow-y-auto scrollbar-macos-thin max-h-[80vh] w-[680px] max-w-[80vw] rounded-md' // settings需要padding和滚动
 
       case 'profile':
-        return 'flex items-center justify-center min-h-full p-4' // profile居中显示
+        return 'flex items-center justify-center min-h-full' // profile居中显示
 
       case 'user-bookmarks':
       case 'team-bookmarks':

@@ -1,11 +1,11 @@
-import confetti from "canvas-confetti"
+import confetti from "canvas-confetti";
+
+
+
+
 
 // 成功撒花 - 登录/注册成功时使用
-export const celebrateSuccess = async (
-  domRef: React.RefObject<HTMLDivElement>
-) => {
-  console.log("domRef:", domRef.current)
-
+export const celebrateSuccess = async (domRef: React.RefObject<HTMLDivElement>) => {
   const canvas = document.createElement("canvas")
   domRef.current?.appendChild(canvas)
 
