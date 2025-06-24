@@ -1,4 +1,8 @@
-import { z } from "zod"
+import { z } from "zod";
+
+
+
+
 
 // 用户注册 schema
 export const RegisterUserSchema = z.object({
@@ -64,6 +68,12 @@ export const UserResponseSchema = z.object({
   updatedAt: z.string()
 })
 
+// 重置密码 schema
+export const ResetPasswordSchema = z.object({
+  email: z.string().email("邮箱格式不正确"),
+  password: z.string().min(6).max(24)
+})
+
 // 类型导出
 export type RegisterUser = z.infer<typeof RegisterUserSchema>
 export type LoginUser = z.infer<typeof LoginUserSchema>
@@ -72,3 +82,4 @@ export type UpdateUserSettings = z.infer<typeof UpdateUserSettingsSchema>
 export type UpdateUser = z.infer<typeof UpdateUserSchema>
 export type JwtPayload = z.infer<typeof JwtPayloadSchema>
 export type UserResponse = z.infer<typeof UserResponseSchema>
+export type ResetPassword = z.infer<typeof ResetPasswordSchema>

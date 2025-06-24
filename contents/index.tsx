@@ -6,6 +6,7 @@ import { ReactQueryProvider, SuspenseLoader, ErrorBoundary } from "~source/compo
 import { TabSwitcher } from "~source/features/tab-switcher"
 import { eventStoppers, keyCheckers } from "~source/shared/utils"
 import { ThemeProvider } from "~source/shared/components"
+import { ContainerProvider } from "~source/shared/components/container-provider"
 
 export const getStyle = () => {
   const style = document.createElement("style")
@@ -15,7 +16,6 @@ export const getStyle = () => {
 
 export default function ContentUI() {
   const [opened, setOpened] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   // 防止背景页面滚动
   useEffect(() => {
@@ -95,12 +95,12 @@ export default function ContentUI() {
       <ReactQueryProvider>
         <ErrorBoundary onClose={() => setOpened(false)}>
           <Suspense fallback={<SuspenseLoader />}>
-            <div ref={containerRef}>
+            <ContainerProvider className="fixed inset-0 z-[9999998]">
               {/* 毛玻璃遮罩背景 */}
               <div
                 className="fixed inset-0 z-[9999998] glass-overlay"
               />
-              <ThemeProvider containerRef={containerRef}>
+              <ThemeProvider>
                 {/* 居中的 TabSwitcher */}
                 <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4"
                   onClick={() => {
@@ -126,7 +126,7 @@ export default function ContentUI() {
                   duration: 2500,
                 }}
               />
-            </div>
+            </ContainerProvider>
           </Suspense>
         </ErrorBoundary>
 

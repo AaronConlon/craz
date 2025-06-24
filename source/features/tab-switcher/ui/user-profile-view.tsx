@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Mail,
   Archive,
@@ -6,8 +6,8 @@ import {
   Check,
   Flag
 } from 'lucide-react'
-import { Button } from '~source/shared/components'
-import { celebrateEdit, celebrateReset } from '~source/shared/utils/confetti'
+import { Button, useContainerRef } from '~source/shared/components'
+import { celebrateSuccess } from '~source/shared/utils/confetti'
 
 // 用户信息视图
 interface UserProfileViewProps {
@@ -24,18 +24,19 @@ export function UserProfileView({ user, onLogout }: UserProfileViewProps) {
     country: 'United States',
     username: user?.username || user?.name?.toLowerCase().replace(' ', '') || ''
   })
+  const ref = useContainerRef()
 
   const handleSave = () => {
     // TODO: 实现保存逻辑
     setIsEditing(false)
     // 保存成功后撒花庆祝
-    celebrateEdit()
+    celebrateSuccess(ref)
   }
 
   const handleEditProfile = () => {
     setIsEditing(true)
     // 点击编辑时也可以撒花
-    celebrateEdit()
+    celebrateSuccess(ref)
   }
 
   return (
@@ -232,7 +233,7 @@ export function UserProfileView({ user, onLogout }: UserProfileViewProps) {
                     username: user?.username || user?.name?.toLowerCase().replace(' ', '') || ''
                   })
                   // 重置时也撒花
-                  celebrateReset()
+                  celebrateSuccess(ref)
                 }}
               >
                 Reset to default

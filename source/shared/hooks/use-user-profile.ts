@@ -80,6 +80,7 @@ export function useUserProfile() {
       if (!response.success) {
         throw new Error(response.error || "登录失败")
       }
+      console.log("login response:", response)
 
       return response.data
     },

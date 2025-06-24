@@ -4,17 +4,18 @@ import { toast } from 'sonner'
 import { AnimatedCounter, EmptyState, EmptyStateVariants, TabFavicon } from '~source/components'
 import { cn, type VisitRecord } from '~source/shared/utils'
 import { useDebounce } from '../../../shared/hooks'
-import { useCleanDuplicateTabs, useCloseTab, useCreateBookmark, useSwitchTab } from '../model/use-tab-switcher'
+import { useAllTabs, useCleanDuplicateTabs, useCloseTab, useCreateBookmark, useDefaultHistoryTop7, useSwitchTab } from '../model/use-tab-switcher'
 import { useRestoreLastClosedTab } from '../model/useRestoreLastClosedTab'
 import type { Tab } from '../types'
 
 interface TabsContentProps {
-  tabs?: Tab[]
-  top7Tabs?: VisitRecord[]
   onClose?: () => void
 }
 
-export function TabsContent({ tabs = [], top7Tabs = [], onClose }: TabsContentProps) {
+export function TabsContent({ onClose }: TabsContentProps) {
+  const { data: tabs } = useAllTabs()
+  const { data: top7Tabs } = useDefaultHistoryTop7()
+
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedQuery = useDebounce(searchQuery, 200)
 

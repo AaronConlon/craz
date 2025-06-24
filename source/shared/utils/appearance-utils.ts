@@ -47,6 +47,8 @@ export function getActualDarkMode(appearanceMode: AppearanceMode): boolean {
 
 /**
  * 应用界面模式到DOM（使用传入的容器ref）
+ * @param appearanceMode - 界面模式
+ * @param containerRef - 可选的容器ref，如果不提供则使用document.documentElement
  */
 export function applyAppearanceMode(
   appearanceMode: AppearanceMode,
@@ -65,21 +67,30 @@ export function applyAppearanceMode(
     target.setAttribute("data-appearance-mode", appearanceMode)
   }
 
-  // 保存到 localStorage 用于下次启动
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem("appearance-mode", appearanceMode)
+  // 保存到 Chrome Storage 用于下次启动
+  if (typeof chrome !== "undefined" && chrome.storage?.local) {
+    chrome.storage.local
+      .set({ "appearance-mode": appearanceMode })
+      .catch((error) => {
+        console.error("Failed to save appearance mode:", error)
+      })
   }
 }
 
 /**
- * 从 localStorage 获取保存的界面模式
+ * 从 Chrome Storage 获取保存的界面模式
  */
-export function getSavedAppearanceMode(): AppearanceMode | null {
-  if (typeof localStorage === "undefined") return null
-
-  const saved = localStorage.getItem("appearance-mode")
-  if (saved && ["light", "dark", "system"].includes(saved)) {
-    return saved as AppearanceMode
+export async function getSavedAppearanceMode(): Promise<AppearanceMode | null> {
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      const result = await chrome.storage.local.get(["appearance-mode"])
+      const saved = result["appearance-mode"]
+      if (saved && ["light", "dark", "system"].includes(saved)) {
+        return saved as AppearanceMode
+      }
+    }
+  } catch (error) {
+    console.error("Failed to get saved appearance mode:", error)
   }
 
   return null
@@ -88,11 +99,11 @@ export function getSavedAppearanceMode(): AppearanceMode | null {
 /**
  * 初始化界面模式
  */
-export function initializeAppearanceMode(
+export async function initializeAppearanceMode(
   defaultMode: AppearanceMode = "system",
   containerRef?: React.RefObject<HTMLElement>
-): void {
-  const savedMode = getSavedAppearanceMode() || defaultMode
+): Promise<void> {
+  const savedMode = (await getSavedAppearanceMode()) || defaultMode
   applyAppearanceMode(savedMode, containerRef)
 
   // 如果是系统模式，监听系统变化

@@ -4,6 +4,7 @@ import { useUserProfile } from '~/source/shared/hooks/use-user-profile'
 import { useCustomColor } from '~/source/shared/hooks/use-custom-color'
 import type { AppearanceMode, FontSize, ThemeColor } from '~/source/shared/types/settings'
 import { applyAppearanceMode } from '~/source/shared/utils/appearance-utils'
+import { useContainerRef } from './container-provider'
 
 // 主题上下文类型
 interface ThemeContextType {
@@ -23,7 +24,6 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 // 主题Provider组件Props
 interface ThemeProviderProps {
   children: ReactNode
-  containerRef: React.RefObject<HTMLDivElement>
 }
 
 // 颜色工具函数 - 生成颜色色阶
@@ -63,7 +63,6 @@ function applyThemeToDOM(
   }
 ) {
   const root = containerRef.current
-  console.log('root:', root)
   if (!root) return
 
   // 设置主题色属性
@@ -94,7 +93,9 @@ function applyThemeToDOM(
 }
 
 // 主题Provider组件
-export function ThemeProvider({ children, containerRef }: ThemeProviderProps) {
+export function ThemeProvider({ children }: ThemeProviderProps) {
+  const containerRef = useContainerRef()
+
   const { settings, updateSettings } = useUserProfile()
   const { customColor, saveColor, isLoading: customColorLoading } = useCustomColor()
 

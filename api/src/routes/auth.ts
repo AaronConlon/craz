@@ -7,7 +7,7 @@ import { createJwtMiddleware } from "../middleware/jwt"
 import {
   LoginUserSchema,
   RegisterUserSchema,
-  UpdateUserSchema,
+  ResetPasswordSchema,
   UpdateUserSettingsSchema
 } from "../schemas/user"
 import { AuthService } from "../services/auth"
@@ -273,6 +273,30 @@ authRoutes.post("/refresh", jwtAuth, async (c) => {
     throw new HTTPException(500, { message: "刷新令牌失败" })
   }
 })
+
+// 重置密码
+authRoutes.post(
+  "/reset-password",
+  zValidator("json", ResetPasswordSchema),
+  async (c) => {
+    const payload = c.req.valid("json")
+    const authService = new AuthService(c.env.DB, c.env.JWT_SECRET)
+
+    try {
+      const result = await authService.resetUserPassword(payload)
+
+      return c.json({
+        success: true,
+        data: result,
+        message: "密码重置成功",
+        timestamp: new Date().toISOString()
+      })
+    } catch (error) {
+      console.error("重置密码失败:", error)
+      throw new HTTPException(500, { message: "重置密码失败" })
+    }
+  }
+)
 
 // 导出JWT认证中间件供其他路由使用
 export { jwtAuth }

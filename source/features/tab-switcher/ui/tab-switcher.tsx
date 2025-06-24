@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AdvancedDock, type ViewMode } from '~source/shared/components/advanced-dock'
-import { ThemeProvider } from '~source/shared/components'
 import { cn } from '~source/shared/utils'
-import { useBookmarkCount } from '../../../shared/hooks'
-import { useAllTabs, useDefaultHistoryTop7 } from '../model/use-tab-switcher'
 import { BookmarksView } from './bookmarks-view'
 import { ProfileView } from './profile-view'
 import { SettingsView } from './settings-view'
@@ -18,10 +15,6 @@ interface TabSwitcherProps {
 export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
   const [activeView, setActiveView] = useState<ViewMode>('profile')
   const ref = useRef<HTMLDivElement>(null)
-
-  const { data: tabs } = useAllTabs()
-  const { data: top7Tabs } = useDefaultHistoryTop7()
-  const { userBookmarkCount, teamBookmarkCount } = useBookmarkCount()
 
   // 监听 ESC 键关闭
   useEffect(() => {
@@ -73,7 +66,7 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
       default:
         return (
           <ViewContainer viewMode="tabs">
-            <TabsContent tabs={tabs} top7Tabs={top7Tabs?.data || []} onClose={onClose} />
+            <TabsContent onClose={onClose} />
           </ViewContainer>
         )
     }
@@ -93,9 +86,6 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
         className='absolute inset-x-0 bottom-[-68px] mx-auto w-max transition-all duration-300'
         activeView={activeView}
         onViewChange={setActiveView}
-        tabCount={tabs?.length ?? 0}
-        userBookmarkCount={userBookmarkCount}
-        teamBookmarkCount={teamBookmarkCount}
       />
     </>
   )

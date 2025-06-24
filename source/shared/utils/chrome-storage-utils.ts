@@ -230,3 +230,74 @@ export async function saveExtendedUserSettings(
     throw error
   }
 }
+
+/**
+ * 保存认证 token 到 Chrome Storage
+ */
+export async function saveAuthToken(token: string): Promise<void> {
+  try {
+    if (chrome.storage?.local) {
+      await chrome.storage.local.set({ "auth_token": token })
+    }
+  } catch (error) {
+    console.error("Failed to save auth token:", error)
+    throw error
+  }
+}
+
+/**
+ * 获取认证 token 从 Chrome Storage
+ */
+export async function getAuthToken(): Promise<string | null> {
+  try {
+    if (chrome.storage?.local) {
+      const result = await chrome.storage.local.get(["auth_token"])
+      return result.auth_token || null
+    }
+    return null
+  } catch (error) {
+    console.error("Failed to get auth token:", error)
+    return null
+  }
+}
+
+/**
+ * 删除认证 token
+ */
+export async function removeAuthToken(): Promise<void> {
+  try {
+    if (chrome.storage?.local) {
+      await chrome.storage.local.remove(["auth_token"])
+    }
+  } catch (error) {
+    console.error("Failed to remove auth token:", error)
+    throw error
+  }
+}
+
+/**
+ * 监听认证 token 变化
+ */
+export function onAuthTokenChange(
+  callback: (token: string | null) => void
+): () => void {
+  const handleStorageChange = (
+    changes: { [key: string]: chrome.storage.StorageChange },
+    namespace: string
+  ) => {
+    if (changes["auth_token"]) {
+      const newValue = changes["auth_token"].newValue
+      callback(newValue || null)
+    }
+  }
+
+  if (chrome.storage?.onChanged) {
+    chrome.storage.onChanged.addListener(handleStorageChange)
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange)
+    }
+  }
+
+  return () => {}
+}

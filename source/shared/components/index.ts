@@ -12,6 +12,9 @@ export { MacOSDock } from "./macos-dock"
 
 // Theme Components
 export { ThemeProvider, useTheme } from "./theme-provider"
+
+// Container Provider
+export { ContainerProvider, useContainer, useContainerRef } from "./container-provider"
 export { ThemeDemo } from "./theme-demo"
 export { ThemeQuickDemo } from "./theme-quick-demo"
 

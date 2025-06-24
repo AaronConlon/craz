@@ -5,6 +5,7 @@ import type {
   JwtPayload,
   LoginUser,
   RegisterUser,
+  ResetPassword,
   UserResponse,
   UserSettings
 } from "../schemas/user"
@@ -302,6 +303,30 @@ export class AuthService extends DatabaseService {
     }
 
     return updatedUser
+  }
+
+  async resetUserPassword(payload: ResetPassword) {
+    const { email, password } = payload
+
+    const dbUser = await this.queryFirst<DatabaseUser>(
+      "SELECT * FROM users WHERE email = ? LIMIT 1",
+      [email]
+    )
+
+    if (!dbUser) {
+      throw new Error("用户不存在")
+    }
+
+    const passwordHash = await this.hashPassword(password)
+    await this.execute("UPDATE users SET password_hash = ? WHERE id = ?", [
+      passwordHash,
+      dbUser.id
+    ])
+
+    return {
+      success: true,
+      message: "密码重置成功"
+    }
   }
 
   // 格式化用户响应（移除敏感信息）

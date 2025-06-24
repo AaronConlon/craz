@@ -127,6 +127,7 @@ async function saveAuthStatus(authStatus: AuthStatus): Promise<void> {
         [STORAGE_KEYS.AUTH_STATUS]: authStatus,
         [STORAGE_KEYS.AUTH_TOKEN]: authStatus.token
       })
+      console.log("save auth status:", authStatus)
     }
   } catch (error) {
     console.error("Failed to save auth status:", error)

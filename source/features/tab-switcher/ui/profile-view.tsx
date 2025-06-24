@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 
+import { useContainerRef } from '~source/shared/components/container-provider'
 import { useUserProfile } from '~source/shared/hooks/use-user-profile'
 import { celebrateSuccess } from '~source/shared/utils/confetti'
 import { AuthContainer } from './auth-container'
@@ -15,14 +16,17 @@ export function ProfileView() {
     isLoading
   } = useUserProfile()
 
+  const ref = useContainerRef()
+
+
   const [isLoginMode, setIsLoginMode] = useState(true)
   const [authForm, setAuthForm] = useState<{
     email: string
     password: string
     name: string
   }>({
-    email: '',
-    password: '',
+    email: 'rivenqinyy@gmail.com',
+    password: 'password',
     name: ''
   })
 
@@ -33,8 +37,9 @@ export function ProfileView() {
       password: authForm.password
     }, {
       onSuccess: () => {
+        console.log("login success:", ref.current)
         // 登录成功后撒花庆祝
-        celebrateSuccess()
+        celebrateSuccess(ref)
       }
     })
   }
@@ -48,7 +53,7 @@ export function ProfileView() {
     }, {
       onSuccess: () => {
         // 注册成功后撒花庆祝
-        celebrateSuccess()
+        celebrateSuccess(ref)
       }
     })
   }
@@ -60,7 +65,7 @@ export function ProfileView() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64 bg-white dark:bg-gray-900">
+      <div className="flex justify-center items-center h-64 bg-white dark:bg-gray-900 w-[400px]">
         <div className="w-8 h-8 rounded-full border-2 border-blue-600 animate-spin dark:border-blue-400 border-t-transparent" />
       </div>
     )
@@ -68,6 +73,7 @@ export function ProfileView() {
 
   if (!isLoggedIn) {
     return (
+      <div>
       <AuthContainer
         authForm={authForm}
         setAuthForm={setAuthForm}
@@ -78,6 +84,12 @@ export function ProfileView() {
         login={login}
         register={register}
       />
+        <div className='absolute inset-0 z-[-1] bg-transparent border'>
+          <button onClick={() => {
+            console.log('profile:', user)
+          }}>show reset password</button>
+        </div>
+      </div>
     )
   }
 

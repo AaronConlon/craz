@@ -18,16 +18,32 @@ export function useAppearanceMode(
 ) {
   const [currentMode, setCurrentMode] = useState<AppearanceMode>(defaultMode)
   const [isDark, setIsDark] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   // 初始化界面模式
   useEffect(() => {
-    const savedMode = getSavedAppearanceMode() || defaultMode
-    setCurrentMode(savedMode)
+    const initializeMode = async () => {
+      try {
+        const savedMode = (await getSavedAppearanceMode()) || defaultMode
+        setCurrentMode(savedMode)
 
-    const actualDark = getActualDarkMode(savedMode)
-    setIsDark(actualDark)
+        const actualDark = getActualDarkMode(savedMode)
+        setIsDark(actualDark)
 
-    applyAppearanceMode(savedMode, containerRef)
+        applyAppearanceMode(savedMode, containerRef)
+      } catch (error) {
+        console.error("Failed to initialize appearance mode:", error)
+        // 使用默认模式作为fallback
+        setCurrentMode(defaultMode)
+        const actualDark = getActualDarkMode(defaultMode)
+        setIsDark(actualDark)
+        applyAppearanceMode(defaultMode, containerRef)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    initializeMode()
   }, [defaultMode, containerRef])
 
   // 监听系统深色模式变化
@@ -62,6 +78,7 @@ export function useAppearanceMode(
     currentMode,
     isDark,
     isSystemDark: getSystemDarkMode(),
+    loading,
     setAppearanceMode,
     toggleDarkMode
   }

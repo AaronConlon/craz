@@ -1,4 +1,8 @@
-import ky from "ky"
+import ky from "ky";
+
+
+
+
 
 // API 客户端配置
 export const apiClient = ky.create({
@@ -9,11 +13,18 @@ export const apiClient = ky.create({
   },
   hooks: {
     beforeRequest: [
-      (request) => {
-        // 添加认证 token
-        const token = localStorage.getItem("auth_token")
-        if (token) {
-          request.headers.set("Authorization", `Bearer ${token}`)
+      async (request) => {
+        // 添加认证 token - 从 Chrome Storage 获取
+        try {
+          if (typeof chrome !== "undefined" && chrome.storage?.local) {
+            const result = await chrome.storage.local.get(["auth_token"])
+            const token = result.auth_token
+            if (token) {
+              request.headers.set("Authorization", `Bearer ${token}`)
+            }
+          }
+        } catch (error) {
+          console.error("Failed to get auth token from Chrome Storage:", error)
         }
       }
     ],

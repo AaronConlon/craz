@@ -1,8 +1,8 @@
-import { FcSettings, FcViewDetails, FcBookmark, FcConferenceCall } from 'react-icons/fc'
-import { Favicon } from './favicon'
+import { User } from 'lucide-react'
+import { FcBookmark, FcConferenceCall, FcSettings, FcViewDetails } from 'react-icons/fc'
 import { useFaviconBookmarks, type FaviconBookmark } from '../hooks/use-chrome-storage'
 import { cn } from '../utils'
-import { User } from 'lucide-react'
+import { Favicon } from './favicon'
 
 export type ViewMode = 'tabs' | 'user-bookmarks' | 'team-bookmarks' | 'settings' | 'profile'
 
@@ -24,9 +24,6 @@ export function AdvancedDock({
   className,
   activeView,
   onViewChange,
-  tabCount = 0,
-  userBookmarkCount = 0,
-  teamBookmarkCount = 0
 }: AdvancedDockProps) {
   const { bookmarks: faviconBookmarks, loading } = useFaviconBookmarks()
 
@@ -47,21 +44,19 @@ export function AdvancedDock({
       id: 'tabs' as ViewMode,
       label: '标签页',
       icon: <FcViewDetails size={24} />,
-      count: tabCount,
+
       onClick: () => onViewChange('tabs')
     },
     {
       id: 'user-bookmarks' as ViewMode,
       label: '个人书签',
       icon: <FcBookmark size={24} />,
-      count: userBookmarkCount,
       onClick: () => onViewChange('user-bookmarks')
     },
     {
       id: 'team-bookmarks' as ViewMode,
       label: '团队书签',
       icon: <FcConferenceCall size={24} />,
-      count: teamBookmarkCount,
       onClick: () => onViewChange('team-bookmarks')
     }
   ]
@@ -150,7 +145,7 @@ function DockMenuItem({ item, active }: DockMenuItemProps) {
 
         {/* 活动指示器 */}
         {active && (
-          <div className="absolute -bottom-4 left-1/2 w-1 h-1 bg-gray-600 rounded-full transform -translate-x-1/2" />
+          <div className="absolute bottom-[-2px] left-1/2 w-1 h-1 bg-gray-600 rounded-full transform -translate-x-1/2" />
         )}
       </div>
 
