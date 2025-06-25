@@ -1,4 +1,5 @@
 export { cn } from "./cn"
+export * from "./copy-utils"
 export * from "./formatDate"
 export * from "./event-utils"
 export * from "./keyboard-utils"

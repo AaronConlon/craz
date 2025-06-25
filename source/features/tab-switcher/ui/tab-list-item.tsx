@@ -1,7 +1,8 @@
-import { X } from 'lucide-react'
+import { Copy, X } from 'lucide-react'
 import { TabFavicon } from '~source/components'
-import { cn } from '~source/shared/utils'
+import { cn, copyUrl } from '~source/shared/utils'
 import type { Tab } from '../types'
+import { toast } from 'sonner'
 
 interface TabListItemProps {
   tab: Tab
@@ -11,6 +12,7 @@ interface TabListItemProps {
   onContextMenu?: (tab: Tab, event: React.MouseEvent, type: 'current' | 'history') => void
   isClosing?: boolean
   className?: string
+  isFirst?: boolean
 }
 
 /**
@@ -36,7 +38,8 @@ export function TabListItem({
   onDeleteHistory,
   onContextMenu,
   isClosing = false,
-  className
+  className,
+  isFirst = false
 }: TabListItemProps) {
   // 判断是否为历史记录（id 为 -1）
   const isHistory = tab.id === -1
@@ -67,6 +70,17 @@ export function TabListItem({
     }
   }
 
+  const handleCopyUrl = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const success = await copyUrl(tab.url || '')
+    if (success) {
+      toast.success('网址已复制到剪贴板 ❤️')
+    } else {
+      toast.error('复制失败，请重试')
+    }
+  }
+
   return (
     <div
       onClick={handleClick}
@@ -78,11 +92,6 @@ export function TabListItem({
         "hover:bg-gray-50 hover:border-l-2 hover:border-l-theme-primary-500",
         // 深色模式悬停
         "dark:hover:bg-gray-900 dark:hover:border-l-theme-primary-400",
-        // 活跃状态（当前标签页）
-        !isHistory && tab.active && [
-          "bg-theme-primary-50 border-l-2 border-l-theme-primary-500",
-          "dark:bg-theme-primary-950 dark:border-l-theme-primary-400"
-        ],
         // 禁用状态
         isClosing && "opacity-50 cursor-not-allowed",
         className
@@ -130,7 +139,7 @@ export function TabListItem({
                 )}
 
                 {/* 历史记录标识 */}
-                {isHistory && (
+                {isHistory && isFirst && (
                   <span className={cn(
                     "text-xs px-1.5 py-0.5 rounded-full font-medium",
                     // 浅色模式
@@ -138,12 +147,12 @@ export function TabListItem({
                     // 深色模式
                     "dark:bg-blue-900 dark:text-blue-300"
                   )}>
-                    历史
+                    最常访问
                   </span>
                 )}
 
                 {/* 访问次数 */}
-                {isHistory && visitCount && (
+                {isHistory && visitCount && isFirst && (
                   <span className={cn(
                     "text-xs px-1.5 py-0.5 rounded-full",
                     // 浅色模式
@@ -170,17 +179,20 @@ export function TabListItem({
               </div>
             </div>
 
-            {/* URL */}
-            <div className={cn(
-              "text-xs truncate transition-colors",
-              // 浅色模式
-              "text-gray-600",
-              // 深色模式
-              "dark:text-gray-400",
-              // 当前活跃标签页的 URL 颜色
-              !isHistory && tab.active && "text-theme-primary-600 dark:text-theme-primary-400"
-            )}>
-              {tab.url}
+            <div className="flex items-center group">
+              {/* URL */}
+              <div className={cn(
+                "text-xs truncate transition-colors max-w-[200px] items-center inline-block",
+                // 浅色模式
+                "text-gray-600",
+                // 深色模式
+                "dark:text-gray-400",
+                // 当前活跃标签页的 URL 颜色
+                !isHistory && tab.active && "text-theme-primary-600 dark:text-theme-primary-400"
+              )}>
+                {tab.url}
+              </div>
+              <Copy onClick={handleCopyUrl} className="w-[16px] h-[16px] ml-1 cursor-pointer hover:text-theme-primary-600 dark:hover:text-theme-primary-400 opacity-0 group-hover:opacity-100 group-hover:text-theme-primary-600 dark:group-hover:text-theme-primary-400" />
             </div>
           </div>
         </div>

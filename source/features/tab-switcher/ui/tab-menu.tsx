@@ -11,7 +11,8 @@ import {
   RotateCcw,
   Star,
   Archive,
-  type LucideIcon
+  type LucideIcon,
+  Share
 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
@@ -68,10 +69,10 @@ export function TabMenu({
   // 当前标签页的菜单项
   const currentTabMenuItems: MenuItem[] = [
     {
-      id: 'copy-url',
-      label: '复制链接',
-      icon: Copy,
-      action: 'copy-url'
+      id: 'share-website',
+      label: '分享网站',
+      icon: Share,
+      action: 'share-website'
     },
     {
       id: 'open-new-tab',
@@ -143,10 +144,10 @@ export function TabMenu({
   // 历史记录的菜单项
   const historyMenuItems: MenuItem[] = [
     {
-      id: 'copy-url',
-      label: '复制链接',
-      icon: Copy,
-      action: 'copy-url'
+      id: 'share-website',
+      label: '分享网站',
+      icon: Share,
+      action: 'share-website'
     },
     {
       id: 'open-new-tab',
@@ -225,9 +226,11 @@ export function TabMenu({
 
   // 处理菜单项点击
   const handleMenuItemClick = (item: MenuItem) => {
+    console.log('[TabMenu] 点击菜单项:', item)
     if (item.disabled || item.divider || !tab) return
 
     try {
+      console.log('[TabMenu] 执行菜单项操作:', item.action)
       onAction(item.action, tab)
       onClose()
     } catch (error) {
@@ -246,24 +249,32 @@ export function TabMenu({
 
     let { x, y } = position
 
+    // x 值设置为外层 div 的右边边框再加上 10px
+    x = x + 10
+
     // 确保菜单不超出右边界
     if (x + menuWidth > window.innerWidth) {
       x = window.innerWidth - menuWidth - 10
     }
 
-    // 确保菜单不超出下边界
-    if (y + menuHeight > window.innerHeight) {
-      y = window.innerHeight - menuHeight - 10
+    // 确保菜单不超出下边界（考虑 transform 向上偏移 50%）
+    if (y + menuHeight / 2 > window.innerHeight) {
+      y = window.innerHeight - menuHeight / 2 - 10
     }
 
-    // 确保菜单不超出左边界和上边界
+    // 确保菜单不超出上边界（考虑 transform 向上偏移 50%）
+    if (y - menuHeight / 2 < 10) {
+      y = menuHeight / 2 + 10
+    }
+
+    // 确保菜单不超出左边界
     x = Math.max(10, x)
-    y = Math.max(10, y)
 
     return {
       position: 'fixed' as const,
       left: x,
       top: y,
+      transform: 'translateY(-50%)',
       zIndex: 9999
     }
   }
@@ -274,9 +285,10 @@ export function TabMenu({
     <div
       ref={menuRef}
       style={getMenuStyle()}
+
       className={cn(
         // 基础样式
-        "min-w-[220px] py-2 rounded-lg shadow-lg border backdrop-blur-sm",
+        "min-w-[220px] py-2 rounded-lg shadow-lg border backdrop-blur-sm max-w-[320px]",
         // 浅色模式渐变背景
         "bg-gradient-to-bl from-white to-gray-50 border-gray-200",
         // 深色模式渐变背景
@@ -354,26 +366,6 @@ export function TabMenu({
             </button>
           )
         })}
-      </div>
-
-      {/* 菜单底部信息 */}
-      <div className={cn(
-        "px-3 py-2 text-xs border-t",
-        // 浅色模式
-        "text-gray-400 border-gray-100",
-        // 深色模式
-        "dark:text-gray-500 dark:border-gray-700"
-      )}>
-        {tab.title && (
-          <div className="truncate" title={tab.title}>
-            {tab.title}
-          </div>
-        )}
-        {tab.url && (
-          <div className="text-gray-400 truncate dark:text-gray-500" title={tab.url}>
-            {tab.url}
-          </div>
-        )}
       </div>
     </div>
   )

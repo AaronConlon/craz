@@ -1,10 +1,10 @@
-import { Bookmark, BrushCleaning, Copy, ExternalLink, Redo2, Search, X } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
 import { sendToBackground } from "@plasmohq/messaging"
 import { useQueryClient } from "@tanstack/react-query"
-import { AnimatedCounter, EmptyState, EmptyStateVariants, TabFavicon } from '~source/components'
-import { cn, type VisitRecord } from '~source/shared/utils'
+import { BrushCleaning, Redo2, Search } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { AnimatedCounter, EmptyState, EmptyStateVariants } from '~source/components'
+import { cn, copyShare } from '~source/shared/utils'
 import { useDebounce } from '../../../shared/hooks'
 import { useAllTabs, useCleanDuplicateTabs, useCloseTab, useCreateBookmark, useDefaultHistoryTop7, useSwitchTab } from '../model/use-tab-switcher'
 import { useRestoreLastClosedTab } from '../model/useRestoreLastClosedTab'
@@ -114,17 +114,6 @@ export function TabsContent({ onClose }: TabsContentProps) {
     }
   }
 
-  const handleCopyUrl = async (tab: Tab, event: React.MouseEvent) => {
-    event.stopPropagation()
-    try {
-      await navigator.clipboard.writeText(tab.url)
-      toast.success('已复制链接')
-    } catch (error) {
-      console.error('Failed to copy URL:', error)
-      toast.error('复制失败')
-    }
-  }
-
   const handleCleanDuplicateTabs = async () => {
     try {
       const result = await cleanDuplicateTabs.mutateAsync({
@@ -191,14 +180,21 @@ export function TabsContent({ onClose }: TabsContentProps) {
 
   // 处理菜单操作
   const handleMenuAction = async (action: string, tab: Tab) => {
+    console.log('[TabsContent] 处理菜单操作:', action, tab)
     try {
       switch (action) {
-        case 'copy-url':
-          await navigator.clipboard.writeText(tab.url!)
-          toast.success('已复制链接')
+        case 'share-website':
+          console.log('[TabsContent] 分享网站:', tab)
+          const success = await copyShare(tab.title || '', tab.url || '')
+          if (success) {
+            toast.success('站点地址和标题已经复制到剪贴板 ❤️')
+          } else {
+            toast.error('复制失败，请重试')
+          }
           break
 
         case 'open-new-tab':
+          console.log('[TabsContent] 在新标签页中打开:', tab)
           await chrome.tabs.create({ url: tab.url })
           toast.success('已在新标签页中打开')
           break
@@ -359,7 +355,7 @@ export function TabsContent({ onClose }: TabsContentProps) {
       </div>
 
       {/* 标签页列表 */}
-      <div className={cn("overflow-y-auto flex-1 pb-24 scrollbar-macos-thin min-h-[320px]")}>
+      <div className={cn("overflow-y-auto flex-1 pb-24 scrollbar-macos-thin min-h-[580px] max-h-[92vh]")}>
         {displayTabs.length === 0 ? (
           <EmptyState
             {...(searchQuery
@@ -369,10 +365,11 @@ export function TabsContent({ onClose }: TabsContentProps) {
           />
         ) : (
             <>
-              {displayTabs.map((tab) => (
+              {displayTabs.map((tab, idx) => (
                 <TabListItem
                   key={`${tab.id}-${tab.url}`}
                   tab={tab}
+                  isFirst={idx < 4}
                   onTabClick={handleTabClick}
                   onCloseTab={handleCloseTab}
                   onDeleteHistory={handleDeleteHistory}
