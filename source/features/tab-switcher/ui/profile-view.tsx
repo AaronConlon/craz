@@ -13,8 +13,9 @@ export function ProfileView() {
     login,
     register,
     logout,
-    isLoading
   } = useUserProfile()
+
+  console.log('user:', user)
 
   const ref = useContainerRef()
 
@@ -62,13 +63,6 @@ export function ProfileView() {
     setAuthForm({ email: '', password: '', name: '' })
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64 bg-white dark:bg-gray-900 w-[400px]">
-        <div className="w-8 h-8 rounded-full border-2 border-blue-600 animate-spin dark:border-blue-400 border-t-transparent" />
-      </div>
-    )
-  }
 
   if (!isLoggedIn) {
     return (

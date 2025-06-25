@@ -1,6 +1,6 @@
 // 主题色类型
 export type ThemeColor =
-  | "zinc"
+  | "sky"
   | "indigo"
   | "emerald"
   | "amber"
@@ -76,7 +76,7 @@ export const APPEARANCE_MODES: Record<AppearanceMode, string> = {
 
 // Tailwind CSS 400级别主题色 - 适合黑白UI风格
 export const THEME_COLORS: Record<ThemeColor, string> = {
-  zinc: "#121826", // 精美暗黑，深蓝灰色调 (400级别基础色)
+  sky: "#0ea5e9", // sky-500 - 清新天蓝，明亮现代
   indigo: "#818CF8", // indigo-400 - 明亮靛蓝，科技感强
   emerald: "#34D399", // emerald-400 - 活力翠绿，清新自然
   amber: "#FBBF24", // amber-400 - 温暖金黄，醒目友好

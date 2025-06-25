@@ -1,13 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery
+} from "@tanstack/react-query"
+import { toast } from "sonner"
 
-
-
-import { userProfileAction } from "../api/messages";
-import type { AuthResponse, AuthUser } from "../api/types";
-import type { AuthStatus, UserSettings } from "../types/settings";
-import { getDefaultSettings } from "../types/settings";
-
+import { userProfileAction } from "../api/messages"
+import type { AuthUser } from "../api/types"
+import type { AuthStatus, UserSettings } from "../types/settings"
+import { getDefaultSettings } from "../types/settings"
 
 // 用户配置文件类型
 export interface UserProfile {
@@ -24,7 +25,7 @@ export function useUserProfile() {
   const queryClient = useQueryClient()
 
   // 获取用户配置文件
-  const query = useQuery({
+  const query = useSuspenseQuery({
     queryKey: ["userProfile"],
     queryFn: async (): Promise<UserProfile> => {
       const response = await userProfileAction({

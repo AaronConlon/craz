@@ -89,18 +89,18 @@
   }
 
   /* 主题色方案定义 - Tailwind CSS 400级别 */
-  [data-theme="zinc"] {
-    --theme-primary: #121826;
-    --theme-primary-50: #8B95A8;
-    --theme-primary-100: #7A8496;
-    --theme-primary-200: #697285;
-    --theme-primary-300: #586173;
-    --theme-primary-400: #121826;
-    --theme-primary-500: #0F1420;
-    --theme-primary-600: #0C111B;
-    --theme-primary-700: #090D15;
-    --theme-primary-800: #060A10;
-    --theme-primary-900: #03060A;
+  [data-theme="sky"] {
+    --theme-primary: #0ea5e9;
+    --theme-primary-50: #f0f9ff;
+    --theme-primary-100: #e0f2fe;
+    --theme-primary-200: #bae6fd;
+    --theme-primary-300: #7dd3fc;
+    --theme-primary-400: #38bdf8;
+    --theme-primary-500: #0ea5e9;
+    --theme-primary-600: #0284c7;
+    --theme-primary-700: #0369a1;
+    --theme-primary-800: #075985;
+    --theme-primary-900: #0c4a6e;
   }
 
   [data-theme="indigo"] {

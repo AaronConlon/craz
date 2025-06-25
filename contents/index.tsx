@@ -102,7 +102,7 @@ export default function ContentUI() {
               />
               <ThemeProvider>
                 {/* 居中的 TabSwitcher */}
-                <div className="fixed inset-0 z-[9999999] flex items-center justify-center p-4"
+                <div className="fixed inset-x-0 bottom-20 z-[9999999] flex items-center justify-center p-4"
                   onClick={() => {
                     setOpened(false)
                   }}
@@ -118,7 +118,7 @@ export default function ContentUI() {
               </ThemeProvider>
               {/* Sonner Toast组件 - 放在最外层确保在最顶层 */}
               <Toaster
-                position="top-right"
+                position="top-center"
                 expand={false}
                 visibleToasts={5}
                 className="toast-top-layer"

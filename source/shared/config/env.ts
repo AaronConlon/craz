@@ -10,6 +10,17 @@ export interface ApiConfig {
   enableLogs: boolean
 }
 
+export interface ShareConfig {
+  baseUrl: string
+  twitterIntentUrl: string
+}
+
+export interface SocialMediaConfig {
+  email: string
+  twitterHandle: string
+  twitterUrl: string
+}
+
 /**
  * 获取 API 配置
  * 开发环境使用 .env，生产环境使用 .env.prod
@@ -30,6 +41,37 @@ export function getApiConfig(): ApiConfig {
     timeout,
     retryLimit,
     enableLogs
+  }
+}
+
+/**
+ * 获取分享配置
+ */
+export function getShareConfig(): ShareConfig {
+  const baseUrl =
+    process.env.PLASMO_PUBLIC_SHARE_BASE_URL || "https://craz.com/profile"
+  const twitterIntentUrl = "https://x.com/intent/tweet"
+
+  return {
+    baseUrl,
+    twitterIntentUrl
+  }
+}
+
+/**
+ * 获取社交媒体配置
+ */
+export function getSocialMediaConfig(): SocialMediaConfig {
+  const email =
+    process.env.PLASMO_PUBLIC_CONTACT_EMAIL || "rivenqinyy@gmail.com"
+  const twitterHandle =
+    process.env.PLASMO_PUBLIC_TWITTER_HANDLE || "AaronConlonDev"
+  const twitterUrl = `https://x.com/${twitterHandle.replace("@", "")}`
+
+  return {
+    email,
+    twitterHandle,
+    twitterUrl
   }
 }
 
@@ -58,6 +100,8 @@ export function getEnvironmentInfo() {
     nodeEnv: process.env.NODE_ENV,
     isDevelopment,
     isProduction,
-    apiConfig: getApiConfig()
+    apiConfig: getApiConfig(),
+    shareConfig: getShareConfig(),
+    socialMediaConfig: getSocialMediaConfig()
   }
 }

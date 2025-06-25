@@ -1,8 +1,16 @@
-import { sendToContentScript, type PlasmoMessaging } from "@plasmohq/messaging"
+import { sendToContentScript, type PlasmoMessaging } from "@plasmohq/messaging";
 
-import { createCrazApiFromEnv } from "~/source/shared/api"
+
+
+import { createCrazApiFromEnv } from "~/source/shared/api";
 import type { AuthResponse, AuthUser } from "~/source/shared/api/types"
-import type { AuthStatus, UserSettings } from "~/source/shared/types/settings"
+import type {
+  AuthStatus,
+  FontSize,
+  Language,
+  ThemeColor,
+  UserSettings
+} from "~/source/shared/types/settings"
 import { getDefaultSettings } from "~/source/shared/types/settings"
 
 // 扩展的用户配置文件类型
@@ -171,6 +179,7 @@ async function getAuthStatus(): Promise<AuthStatus> {
  */
 async function saveAuthStatus(authStatus: AuthStatus): Promise<void> {
   try {
+    console.log(`Try to save auth status: ${authStatus}`)
     if (typeof chrome !== "undefined" && chrome.storage?.local) {
       await chrome.storage.local.set({
         [STORAGE_KEYS.AUTH_STATUS]: authStatus,
@@ -271,27 +280,33 @@ async function fetchUserProfileFromAPI(
         await setLastApiRequestTimestamp(now)
       }
     } catch (error) {
-      userResponse = { success: false, error: error.message }
+      userResponse = {
+        success: false,
+        error: error.message,
+        data: {},
+        timestamp: new Date().toISOString()
+      }
     }
 
     // TODO: 当有用户设置API时，实现云端设置获取
     // const settingsResponse = await api.auth.getUserSettings()
 
-    if (userResponse.success && userResponse.user) {
+    if (userResponse.success && userResponse.data?.user) {
       // 用户已登录
-      console.log("✅ API 返回用户信息:", userResponse.user)
+      console.log("✅ API 返回用户信息:", userResponse.data.user)
       const userSettings = await getLocalUserSettings()
 
       const authStatus: AuthStatus = {
         isLoggedIn: true,
-        userId: userResponse.user.id,
-        username: userResponse.user.name,
+        userId: userResponse.data.user.id,
+        username:
+          userResponse.data.user.username || userResponse.data.user.name,
         token: token || "",
         expiresAt: now + 24 * 60 * 60 * 1000 // 24小时后过期
       }
 
       const profile: UserProfile = {
-        user: userResponse.user,
+        user: userResponse.data.user,
         settings: userSettings,
         authStatus,
         lastSyncAt: now,
@@ -454,6 +469,7 @@ async function getUserProfile(forceRefresh = false): Promise<UserProfile> {
 
   // 1. 首先尝试获取本地缓存数据
   const cachedProfile = await getCachedUserProfile()
+  console.log("cache profile:", cachedProfile)
   console.log(
     "📂 获取到的缓存数据:",
     cachedProfile
@@ -568,30 +584,74 @@ async function updateUserSettings(
  */
 async function handleLogin(credentials: any): Promise<AuthResponse> {
   try {
+    console.log("处理用户登录：", credentials)
     const api = createCrazApiFromEnv()
     const response = await api.auth.login(credentials)
+    console.log("api response:", response)
 
-    if (response.success && response.user && response.token) {
+    if (response.success && response.data?.user && response.data?.token) {
+      const now = Date.now()
+
+      // 构建认证状态
       const authStatus: AuthStatus = {
         isLoggedIn: true,
-        userId: response.user.id,
-        username: response.user.name,
-        token: response.token,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000
+        userId: response.data.user.id,
+        username: response.data.user.username || response.data.user.name,
+        token: response.data.token,
+        expiresAt: now + 24 * 60 * 60 * 1000 // 24小时后过期
       }
 
       console.log("🔄 登录后保存的认证状态:", authStatus)
       await saveAuthStatus(authStatus)
 
-      // 登录后立即获取完整配置文件（强制刷新，绕过冷却期）
-      const updatedProfile = await getUserProfile(true)
-      console.log(
-        "🔄 登录后获取的用户配置文件:",
-        updatedProfile.user ? "包含用户信息" : "不包含用户信息"
-      )
+      // 合并用户云端设置和本地设置
+      const localSettings = await getLocalUserSettings()
+      const cloudSettings = response.data.user.settings || {}
+
+      // 安全地合并设置，确保类型兼容
+      const mergedSettings: UserSettings = {
+        ...localSettings,
+        // 只覆盖本地定义支持的设置项，确保类型安全
+        ...(cloudSettings.themeColor && {
+          themeColor: cloudSettings.themeColor as ThemeColor
+        }),
+        ...(cloudSettings.language &&
+          ["zh-CN", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE"].includes(
+            cloudSettings.language
+          ) && { language: cloudSettings.language as Language }),
+        ...(cloudSettings.fontSize &&
+          ["small", "medium", "large"].includes(cloudSettings.fontSize) && {
+            fontSize: cloudSettings.fontSize as FontSize
+          }),
+        updatedAt: now
+      }
+
+      // 保存合并后的设置到本地
+      await saveLocalUserSettings(mergedSettings)
+
+      // 构建完整的用户配置文件
+      const userProfile: UserProfile = {
+        user: response.data.user,
+        settings: mergedSettings,
+        authStatus,
+        lastSyncAt: now,
+        syncStatus: "synced"
+      }
+
+      // 保存用户配置文件到缓存
+      await saveCachedUserProfile(userProfile)
+
+      // 更新最后一次API请求时间戳（避免后续不必要的/me请求）
+      await setLastApiRequestTimestamp(now)
+
+      console.log("✅ 登录成功，用户配置文件已保存:", {
+        userId: userProfile.user?.id,
+        username: userProfile.user?.username || userProfile.user?.name,
+        hasSettings: !!userProfile.settings
+      })
 
       // 立即通知 content scripts 登录成功
-      await notifyContentScriptProfileUpdate(updatedProfile)
+      await notifyContentScriptProfileUpdate(userProfile)
     }
 
     return response
@@ -606,29 +666,74 @@ async function handleLogin(credentials: any): Promise<AuthResponse> {
  */
 async function handleRegister(userData: any): Promise<AuthResponse> {
   try {
+    console.log("处理用户注册：", userData)
     const api = createCrazApiFromEnv()
     const response = await api.auth.register(userData)
+    console.log("api response:", response)
 
-    if (response.success && response.user && response.token) {
+    if (response.success && response.data?.user && response.data?.token) {
+      const now = Date.now()
+
+      // 构建认证状态
       const authStatus: AuthStatus = {
         isLoggedIn: true,
-        userId: response.user.id,
-        username: response.user.name,
-        token: response.token,
-        expiresAt: Date.now() + 24 * 60 * 60 * 1000
+        userId: response.data.user.id,
+        username: response.data.user.username || response.data.user.name,
+        token: response.data.token,
+        expiresAt: now + 24 * 60 * 60 * 1000 // 24小时后过期
       }
 
+      console.log("🔄 注册后保存的认证状态:", authStatus)
       await saveAuthStatus(authStatus)
 
-      // 注册后立即获取完整配置文件（强制刷新，绕过冷却期）
-      const updatedProfile = await getUserProfile(true)
-      console.log(
-        "🔄 注册后获取的用户配置文件:",
-        updatedProfile.user ? "包含用户信息" : "不包含用户信息"
-      )
+      // 合并用户云端设置和本地设置
+      const localSettings = await getLocalUserSettings()
+      const cloudSettings = response.data.user.settings || {}
+
+      // 安全地合并设置，确保类型兼容
+      const mergedSettings: UserSettings = {
+        ...localSettings,
+        // 只覆盖本地定义支持的设置项，确保类型安全
+        ...(cloudSettings.themeColor && {
+          themeColor: cloudSettings.themeColor as ThemeColor
+        }),
+        ...(cloudSettings.language &&
+          ["zh-CN", "en-US", "ja-JP", "ko-KR", "fr-FR", "de-DE"].includes(
+            cloudSettings.language
+          ) && { language: cloudSettings.language as Language }),
+        ...(cloudSettings.fontSize &&
+          ["small", "medium", "large"].includes(cloudSettings.fontSize) && {
+            fontSize: cloudSettings.fontSize as FontSize
+          }),
+        updatedAt: now
+      }
+
+      // 保存合并后的设置到本地
+      await saveLocalUserSettings(mergedSettings)
+
+      // 构建完整的用户配置文件
+      const userProfile: UserProfile = {
+        user: response.data.user,
+        settings: mergedSettings,
+        authStatus,
+        lastSyncAt: now,
+        syncStatus: "synced"
+      }
+
+      // 保存用户配置文件到缓存
+      await saveCachedUserProfile(userProfile)
+
+      // 更新最后一次API请求时间戳（避免后续不必要的/me请求）
+      await setLastApiRequestTimestamp(now)
+
+      console.log("✅ 注册成功，用户配置文件已保存:", {
+        userId: userProfile.user?.id,
+        username: userProfile.user?.username || userProfile.user?.name,
+        hasSettings: !!userProfile.settings
+      })
 
       // 立即通知 content scripts 注册成功
-      await notifyContentScriptProfileUpdate(updatedProfile)
+      await notifyContentScriptProfileUpdate(userProfile)
     }
 
     return response

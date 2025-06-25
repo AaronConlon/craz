@@ -13,7 +13,7 @@ interface TabSwitcherProps {
 }
 
 export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
-  const [activeView, setActiveView] = useState<ViewMode>('profile')
+  const [activeView, setActiveView] = useState<ViewMode>('tabs')
   const ref = useRef<HTMLDivElement>(null)
 
   // 监听 ESC 键关闭
@@ -76,7 +76,7 @@ export function TabSwitcher({ className, onClose }: TabSwitcherProps) {
     <>
       <div
         ref={ref}
-        className={cn('flex overflow-hidden flex-col w-full h-full bg-white rounded-lg border-t border-gray-200 theme-transition', className)}
+        className={cn('flex overflow-hidden flex-col w-full h-full bg-gradient-to-bl from-gray-50 to-white rounded-lg border-t border-gray-200 dark:bg-gradient-to-bl dark:from-gray-800 dark:to-black dark:border-gray-800 theme-transition', className)}
       >
         {/* 主要内容区域 */}
         {renderMainContent()}

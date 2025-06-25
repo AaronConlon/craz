@@ -1,8 +1,12 @@
-import { THEME_COLORS } from "~/source/shared/types/settings"
+import { THEME_COLORS } from "~/source/shared/types/settings";
+
+
+
+
 
 // 主题名称映射 - Tailwind CSS 400级别
 export const THEME_NAMES = {
-  zinc: "精美暗黑", // 深蓝灰色调 - 现代优雅
+  sky: "清新天蓝", // sky-500 - 清新天蓝色
   indigo: "明亮靛蓝", // indigo-400 - 科技感强
   emerald: "活力翠绿", // emerald-400 - 清新自然
   amber: "温暖金黄", // amber-400 - 醒目友好
@@ -11,7 +15,7 @@ export const THEME_NAMES = {
 
 // 主题描述信息 - 基于 Tailwind CSS 400 级别特性
 export const THEME_DESCRIPTIONS = {
-  zinc: "深邃的蓝灰暗黑，神秘优雅，完美适配高端暗色主题",
+  sky: "清新的天蓝色调，明亮现代，传达活力与创新感",
   indigo: "明亮的科技靛蓝，现代感强，传达创新与信赖",
   emerald: "活力的清新翠绿，自然明快，象征成长与成功",
   amber: "温暖的醒目金黄，友好明亮，带来活力与创新",

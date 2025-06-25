@@ -1,256 +1,163 @@
-import { useRef, useState } from 'react'
+import avatar from "data-base64:~assets/avatar.png"
 import {
+  CheckCircle,
+  LogOut,
   Mail,
-  Archive,
-  X,
-  Check,
-  Flag
+  Share,
+  Twitter
 } from 'lucide-react'
-import { Button, useContainerRef } from '~source/shared/components'
-import { celebrateSuccess } from '~source/shared/utils/confetti'
-
+import type { AuthUser } from '~/source/shared/api/types'
+import { getShareConfig, getSocialMediaConfig } from '~/source/shared/config/env'
+import { Button } from '~source/shared/components'
 // 用户信息视图
 interface UserProfileViewProps {
-  user: any
+  user: AuthUser | null
   onLogout: () => void
 }
 
 export function UserProfileView({ user, onLogout }: UserProfileViewProps) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [editForm, setEditForm] = useState({
-    firstName: user?.name?.split(' ')[0] || '',
-    lastName: user?.name?.split(' ')[1] || '',
-    email: user?.email || '',
-    country: 'United States',
-    username: user?.username || user?.name?.toLowerCase().replace(' ', '') || ''
-  })
-  const ref = useContainerRef()
 
-  const handleSave = () => {
-    // TODO: 实现保存逻辑
-    setIsEditing(false)
-    // 保存成功后撒花庆祝
-    celebrateSuccess(ref)
+  if (!user) return null
+
+  // 构建分享 URL 和文本
+  const shareConfig = getShareConfig()
+  const socialMediaConfig = getSocialMediaConfig()
+  const shareUrl = `${shareConfig.baseUrl}/${user.username || user.id}`
+  const shareText = "我正在使用 Craz Chrome 扩展来管理我的标签页和书签，快来看看我的档案吧！🚀"
+
+  // 分享到 X (Twitter)
+  const handleShare = () => {
+    const twitterUrl = `${shareConfig.twitterIntentUrl}?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`
+    window.open(twitterUrl, '_blank', 'noopener,noreferrer')
   }
 
-  const handleEditProfile = () => {
-    setIsEditing(true)
-    // 点击编辑时也可以撒花
-    celebrateSuccess(ref)
+  // 格式化加入时间
+  const formatJoinDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long'
+    })
   }
 
   return (
     <div className="overflow-y-auto max-h-[500px] scrollbar-macos-thin">
-      <div className="p-4 mx-auto max-w-3xl bg-white rounded-xl shadow-sm dark:bg-gray-800">
-        {/* 头部 */}
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex gap-3 items-center">
-            {/* 头像 */}
+      <div className="overflow-hidden relative mx-auto max-w-md bg-theme-bg-primary border-theme-border-primary">
+        {/* 主题色渐变背景 */}
+        {/* <div className="h-32 bg-gradient-to-br opacity-0 from-theme-primary-400 via-theme-primary-500 to-theme-primary-600 dark:from-theme-primary-600 dark:via-theme-primary-700 dark:to-theme-primary-800"></div> */}
+
+        {/* 头部操作按钮 */}
+        <div className="flex absolute top-4 right-4 gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+          >
+            <Share size={16} className="text-theme-primary-100" />
+            <span className="text-xs font-medium">Share</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onLogout}
+          >
+            <LogOut size={16} className="text-theme-primary-100" />
+            <span className="text-xs font-medium">Logout</span>
+          </Button>
+        </div>
+
+        {/* 主要内容 */}
+        <div className="px-6 pt-24 pb-6 bg-white dark:bg-gray-900">
+          {/* 头像 */}
+          <div className="flex justify-center mb-4">
             <div className="relative">
               <img
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`}
-                alt={user?.name}
-                className="w-16 h-16 bg-gradient-to-br from-yellow-200 to-orange-300 rounded-full"
+                src={user?.avatar?.length ? user.avatar : avatar}
+                alt={user.name}
+                className="p-1 w-24 h-24 rounded-full ring-4 shadow-lg bg-theme-bg-primary ring-theme-bg-primary"
               />
-              <div className="flex absolute -right-1 -bottom-1 justify-center items-center w-5 h-5 bg-blue-500 rounded-full dark:bg-blue-400">
-                <Check className="w-3 h-3 text-white" />
-              </div>
-            </div>
-
-            {/* 用户信息 */}
-            <div>
-              <div className="flex gap-2 items-center mb-1">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">{user?.name}</h1>
-                <span className="px-2 py-0.5 text-xs text-green-700 dark:text-green-100 bg-green-100 dark:bg-green-800 rounded-full">
-                  Subscribed
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{user?.email}</p>
-            </div>
-          </div>
-
-          {/* 操作按钮 */}
-          <div className="flex gap-1 items-center">
-            <Button variant="outline" size="sm" className="gap-1">
-              <Archive size={14} />
-              Archive
-            </Button>
-            <Button variant="outline" size="sm">
-              View orders
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onLogout}
-              className="w-8 h-8 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <X size={16} />
-            </Button>
-          </div>
-        </div>
-
-        {/* 统计信息 */}
-        <div className="grid grid-cols-4 gap-4 pb-4 mb-6 border-b border-gray-200 dark:border-gray-700">
-          <div>
-            <p className="mb-1 text-xs text-gray-600 dark:text-gray-400">First seen</p>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">1 Mar, 2025</p>
-          </div>
-          <div>
-            <p className="mb-1 text-xs text-gray-600 dark:text-gray-400">First purchase</p>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">4 Mar, 2025</p>
-          </div>
-          <div>
-            <p className="mb-1 text-xs text-gray-600 dark:text-gray-400">Revenue</p>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">$118.00</p>
-          </div>
-          <div>
-            <p className="mb-1 text-xs text-gray-600 dark:text-gray-400">MRR</p>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">$0.00</p>
-          </div>
-        </div>
-
-        {/* 编辑表单 */}
-        <div className="space-y-4">
-          {/* 姓名 */}
-          <div>
-            <label className="block mb-2 text-xs font-medium text-gray-900 dark:text-white">Name</label>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
-                value={editForm.firstName}
-                onChange={(e) => setEditForm(prev => ({ ...prev, firstName: e.target.value }))}
-                className="px-2 py-1.5 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-                placeholder="Sienna"
-                disabled={!isEditing}
-              />
-              <input
-                type="text"
-                value={editForm.lastName}
-                onChange={(e) => setEditForm(prev => ({ ...prev, lastName: e.target.value }))}
-                className="px-2 py-1.5 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-                placeholder="Hewitt"
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-
-          {/* 邮箱 */}
-          <div>
-            <label className="block mb-2 text-xs font-medium text-gray-900 dark:text-white">Email address</label>
-            <div className="relative">
-              <Mail className="absolute left-2 top-1/2 w-4 h-4 text-gray-400 -translate-y-1/2 dark:text-gray-500" />
-              <input
-                type="email"
-                value={editForm.email}
-                onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                className="py-1.5 pr-2 pl-8 w-full text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-                placeholder="siennahewitt@gmail.com"
-                disabled={!isEditing}
-              />
-            </div>
-            <div className="flex gap-1 items-center mt-1">
-              <div className="flex justify-center items-center w-3 h-3 bg-blue-500 rounded-full dark:bg-blue-400">
-                <Check className="w-1.5 h-1.5 text-white" />
-              </div>
-              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">VERIFIED 2 JAN, 2025</span>
-            </div>
-          </div>
-
-          {/* 国家 */}
-          <div>
-            <label className="block mb-2 text-xs font-medium text-gray-900 dark:text-white">Country</label>
-            <div className="relative">
-              <div className="flex absolute left-2 top-1/2 gap-1 items-center -translate-y-1/2">
-                <Flag className="w-4 h-4 text-red-500 dark:text-red-400" />
-              </div>
-              <select
-                value={editForm.country}
-                onChange={(e) => setEditForm(prev => ({ ...prev, country: e.target.value }))}
-                className="py-1.5 pr-6 pl-8 w-full text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-                disabled={!isEditing}
-              >
-                <option>United States</option>
-                <option>China</option>
-                <option>Canada</option>
-                <option>United Kingdom</option>
-              </select>
+              {user.isSponsored && (
+                <div className="flex absolute -right-1 -bottom-1 justify-center items-center w-7 h-7 rounded-full ring-4 bg-theme-primary-500 ring-theme-bg-primary">
+                  <CheckCircle className="w-4 h-4 text-theme-primary-100" />
+                </div>
+              )}
             </div>
           </div>
 
           {/* 用户名 */}
-          <div>
-            <label className="block mb-2 text-xs font-medium text-gray-900 dark:text-white">Username</label>
-            <div className="flex">
-              <div className="px-2 py-1.5 text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-l-md">
-                untitledui.com/
+          <div className="mb-1 text-center">
+            <p className="text-md text-theme-primary-500">
+              Hi, @{user.username || user.name.toLowerCase().replace(/\s+/g, '')}
+            </p>
+          </div>
+
+          {/* 姓名和验证徽章 */}
+          <div className="flex gap-2 justify-center items-center mb-2">
+            <h1 className="text-xl font-bold text-theme-text-primary">
+              {user.name}
+            </h1>
+            {user.isSponsored && (
+              <div className="flex justify-center items-center w-5 h-5 rounded-full bg-theme-primary-500">
+                <span className="text-xs text-theme-primary-100">💎</span>
               </div>
-              <input
-                type="text"
-                value={editForm.username}
-                onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
-                className="flex-1 px-2 py-1.5 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
-                placeholder="siennahewitt"
-                disabled={!isEditing}
-              />
-              <div className="p-1 ml-1 bg-blue-50 rounded-md dark:bg-blue-900">
-                <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
+            )}
+          </div>
+
+          {/* 位置和加入时间 */}
+          <div className="flex gap-4 justify-center items-center mb-6 text-sm text-gray-900 dark:text-white">
+            <span>Joined {formatJoinDate(user.createdAt)}</span>
+          </div>
+
+          {/* 联系我 */}
+          <div className="mb-6">
+            {/* 提示文字 */}
+            {
+              !user.isSponsored && (
+                <p className="mb-4 text-sm text-center text-gray-900 dark:text-white">
+                  很遗憾我暂时没有支付渠道，如果你想使用 Pro 用户的功能，欢迎联系我
+                </p>
+              )
+            }
+
+            {/* 联系方式 */}
+            <div className="flex gap-4 justify-center items-center">
+              {/* 邮箱 */}
+              <a
+                href={`mailto:${socialMediaConfig.email}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex gap-2 items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-theme-bg-secondary hover:bg-theme-bg-accent text-theme-text-primary hover:text-theme-primary-600 dark:hover:text-theme-primary-400"
+              >
+                <Mail size={16} className="text-theme-primary-500" />
+                <span className="text-gray-900 dark:text-white">邮箱</span>
+              </a>
+
+              {/* 推特 (X) */}
+              <a
+                href={socialMediaConfig.twitterUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex gap-2 items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-theme-bg-secondary hover:bg-theme-bg-accent text-theme-text-primary hover:text-theme-primary-600 dark:hover:text-theme-primary-400"
+              >
+                <Twitter size={16} className="text-theme-primary-500" />
+                <span className="text-gray-900 dark:text-white">推特</span>
+              </a>
             </div>
           </div>
-        </div>
 
-        {/* 底部按钮 */}
-        <div className="flex justify-between items-center pt-4 mt-6 border-t border-gray-200 dark:border-gray-700">
-          {isEditing ? (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                className="text-white bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 dark:text-gray-900"
-              >
-                Save changes
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  // 重置表单
-                  setEditForm({
-                    firstName: user?.name?.split(' ')[0] || '',
-                    lastName: user?.name?.split(' ')[1] || '',
-                    email: user?.email || '',
-                    country: 'United States',
-                    username: user?.username || user?.name?.toLowerCase().replace(' ', '') || ''
-                  })
-                  // 重置时也撒花
-                  celebrateSuccess(ref)
-                }}
-              >
-                Reset to default
-              </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleEditProfile}
-                  className="text-white bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-gray-200 dark:text-gray-900"
-                >
-                  Edit Profile
-                </Button>
+          {/* 订阅状态 */}
+          {user.isSponsored && (
+            <div className="p-3 mt-4 rounded-xl border bg-theme-primary-50 dark:bg-theme-primary-900/20 border-theme-primary-200 dark:border-theme-primary-800">
+              <div className="flex gap-2 items-center">
+                <CheckCircle className="w-4 h-4 text-theme-primary-600 dark:text-theme-primary-400" />
+                <span className="text-sm font-medium text-theme-primary-800 dark:text-theme-primary-200">
+                  Premium Subscriber
+                </span>
               </div>
-            </>
+              <p className="mt-1 text-xs text-theme-primary-600 dark:text-theme-primary-400">
+                Active subscription since {formatJoinDate(user.createdAt)}
+              </p>
+            </div>
           )}
         </div>
       </div>

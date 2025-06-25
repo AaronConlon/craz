@@ -151,7 +151,16 @@ export interface AuthUser {
   id: string
   email: string
   name: string
+  username?: string // 用户名，可能与 name 不同
   avatar?: string
+  isSponsored?: boolean
+  receiveOfficialMessages?: boolean
+  settings?: {
+    theme?: string
+    language?: string
+    fontSize?: string
+    [key: string]: any
+  }
   createdAt: string
   updatedAt: string
 }
@@ -168,9 +177,13 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
+  data: {
+    user?: AuthUser
+    token?: string
+  }
+  message?: string
   success: boolean
-  user?: AuthUser
-  token?: string
+  timestamp: string
   error?: string
 }
 
