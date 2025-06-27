@@ -1,11 +1,11 @@
 import { sendToBackground } from "@plasmohq/messaging"
 import { useQueryClient } from "@tanstack/react-query"
 import { BrushCleaning, Redo2, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import { AnimatedCounter, EmptyState, EmptyStateVariants } from '~source/components'
 import { cn, copyShare } from '~source/shared/utils'
-import { useDebounce } from '../../../shared/hooks'
+import { useDebounce, useSearchHistory } from '../../../shared/hooks'
 import { useAllTabs, useCleanDuplicateTabs, useCloseTab, useCreateBookmark, useDefaultHistoryTop7, useSwitchTab } from '../model/use-tab-switcher'
 import { useRestoreLastClosedTab } from '../model/useRestoreLastClosedTab'
 import type { Tab } from '../types'
@@ -23,6 +23,21 @@ export function TabsContent({ onClose }: TabsContentProps) {
 
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedQuery = useDebounce(searchQuery, 200)
+
+  // 搜索历史记录用于补全结果
+  const { data: searchHistoryResponse } = useSearchHistory(
+    debouncedQuery,
+    10, // 最多获取10条历史记录
+    !!debouncedQuery.trim() // 只在有搜索内容时启用
+  )
+
+  // 键盘快捷键相关状态
+  const [isCommandMode, setIsCommandMode] = useState(false)
+  const [visibleTabsWithKeys, setVisibleTabsWithKeys] = useState<Array<{ tab: Tab; key: string; index: number }>>([])
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // 定义键序列 qwertyuiopasdfghjklzxcvbnm
+  const keySequence = 'qwertyuiopasdfghjklzxcvbnm'.split('')
 
   // 右键菜单状态
   const [menuState, setMenuState] = useState<{
@@ -42,6 +57,7 @@ export function TabsContent({ onClose }: TabsContentProps) {
   const createBookmark = useCreateBookmark()
   const cleanDuplicateTabs = useCleanDuplicateTabs()
   const restoreLastClosedTab = useRestoreLastClosedTab()
+
 
   // 从历史记录响应中提取数据数组，并转换为统一格式
   const top7Records = top7Response?.data || []
@@ -72,12 +88,174 @@ export function TabsContent({ onClose }: TabsContentProps) {
     tab.url?.toLowerCase().includes(debouncedQuery.toLowerCase())
   ) ?? []
 
-  const displayTabs = searchQuery?.trim()?.length ? filteredTabs : top7Tabs
+  // 主要显示数据
+  let displayTabs = searchQuery?.trim()?.length ? filteredTabs : top7Tabs
+
+  // 补全逻辑：如果搜索结果少于4个且有搜索内容，用历史记录补全
+  if (searchQuery?.trim()?.length && displayTabs.length < 4 && searchHistoryResponse?.data) {
+    console.log('🔍 搜索结果不足4个，尝试历史记录补全')
+
+    // 获取历史记录数据
+    const historyRecords = searchHistoryResponse.data
+
+    // 将历史记录转换为 Tab 格式，并避免重复
+    const existingUrls = new Set(displayTabs.map(tab => tab.url))
+    const historyTabs = historyRecords
+      .filter(record => !existingUrls.has(record.url)) // 避免重复
+      .slice(0, 4 - displayTabs.length) // 只取需要的数量
+      .map((record, index) => ({
+        id: -2 - index, // 使用负数区分历史记录补全项（-2, -3, -4...）
+        url: record.url,
+        title: record.title,
+        favIconUrl: record.favicon,
+        active: false,
+        highlighted: false,
+        pinned: false,
+        selected: false,
+        windowId: -1,
+        index: displayTabs.length + index,
+        incognito: false,
+        discarded: false,
+        autoDiscardable: false,
+        groupId: -1,
+        // 标记为历史记录补全项
+        _isHistoryComplement: true,
+        _visitCount: record.visitCount
+      } as Tab & { _isHistoryComplement: boolean; _visitCount: number }))
+
+    // 合并显示数据
+    displayTabs = [...displayTabs, ...historyTabs]
+
+    console.log(`🔍 历史记录补全完成，新增 ${historyTabs.length} 条，总计 ${displayTabs.length} 条`)
+  }
+
+  // 更新可视区域内的标签页和对应按键
+  const updateVisibleTabs = useCallback((forceCommandMode?: boolean) => {
+    const currentCommandMode = forceCommandMode ?? isCommandMode
+
+    if (!containerRef.current || !currentCommandMode) {
+      return
+    }
+
+    const tabElements = containerRef.current.querySelectorAll('[data-tab-item]')
+    const visibleTabs: Array<{ tab: Tab; key: string; index: number }> = []
+
+    tabElements.forEach((element, index) => {
+      const tabIndex = parseInt(element.getAttribute('data-tab-index') || '0')
+      const tab = displayTabs[tabIndex]
+
+      // 临时简化：先为所有标签页分配字母，不检查可视区域
+      const isVisible = !!tab // 只要有 tab 就认为可见
+
+      if (tab && isVisible) {
+        const keyIndex = visibleTabs.length
+        if (keyIndex < keySequence.length) {
+          const assignedKey = keySequence[keyIndex]
+          visibleTabs.push({
+            tab,
+            key: assignedKey,
+            index: tabIndex
+          })
+        }
+      }
+    })
+
+    console.log('🔤 分配快捷键:', visibleTabs.length, '个标签页')
+    setVisibleTabsWithKeys(visibleTabs)
+  }, [isCommandMode, displayTabs, keySequence])
+
+  // 处理搜索框的键盘事件
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // 检测 Alt (Windows) 或 Option (macOS) 键
+    const isAltKey = event.altKey || event.key === 'Alt' || event.key === 'Option'
+
+    if (isAltKey) {
+      event.preventDefault()
+      // 如果已经在快捷键模式，则退出；否则进入
+      if (isCommandMode) {
+        setIsCommandMode(false)
+        setVisibleTabsWithKeys([])
+        // 重新 focus 到搜索框
+        setTimeout(() => {
+          const input = event.target as HTMLInputElement
+          input.focus()
+        }, 0)
+        return
+      } else {
+        setIsCommandMode(true)
+        console.log('🎯 激活 Alt 快捷键模式')
+        return
+      }
+    }
+
+    // 在快捷键模式下处理字母按键
+    if (isCommandMode && event.key.length === 1 && /^[a-zA-Z]$/.test(event.key)) {
+      event.preventDefault()
+      const pressedKey = event.key.toLowerCase()
+
+      const matchedTab = visibleTabsWithKeys.find(item => item.key === pressedKey)
+      if (matchedTab) {
+        handleTabClick(matchedTab.tab)
+      }
+      return
+    }
+
+    // Escape 键退出快捷键模式
+    if (event.key === 'Escape' && isCommandMode) {
+      event.preventDefault()
+      setIsCommandMode(false)
+      setVisibleTabsWithKeys([])
+      return
+    }
+
+    // 在快捷键模式下阻止正常的输入行为
+    if (isCommandMode) {
+      event.preventDefault()
+      return
+    }
+  }
+
+  // 处理搜索输入变化
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 在 Command 模式下不修改搜索内容
+    if (isCommandMode) {
+      return
+    }
+    setSearchQuery(e.target.value)
+  }
+
+  // 监听快捷键模式变化，自动更新可视区域
+  useEffect(() => {
+    if (isCommandMode && containerRef.current) {
+      console.log('🎯 Alt 快捷键模式激活，触发 favicon 更新')
+      updateVisibleTabs()
+    } else if (!isCommandMode && visibleTabsWithKeys.length > 0) {
+      // 只在有快捷键时才清空，避免无限循环
+      console.log('🎯 Alt 快捷键模式退出，清空快捷键')
+      setVisibleTabsWithKeys([])
+    }
+  }, [isCommandMode]) // 移除 displayTabs 依赖，避免无限循环
+
+  // 监听滚动事件，更新可视区域
+  useEffect(() => {
+    if (!containerRef.current || !isCommandMode) return
+
+    const handleScroll = () => {
+      updateVisibleTabs()
+    }
+
+    const container = containerRef.current
+    container.addEventListener('scroll', handleScroll)
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+    }
+  }, [isCommandMode, displayTabs])
 
   const handleTabClick = async (tab: Tab) => {
     try {
-      if (tab.id === -1) {
-        // 这是历史记录项，在新标签页中打开
+      if (tab.id === -1 || (tab as any)._isHistoryComplement) {
+      // 这是历史记录项或补全项，在新标签页中打开
         window.open(tab.url, '_blank')
         onClose?.()
       } else {
@@ -145,11 +323,16 @@ export function TabsContent({ onClose }: TabsContentProps) {
       if (response.success) {
         if (response.deleted) {
           toast.success('已删除历史记录')
-          console.log('[TabsContent] 历史记录删除成功，刷新 top7 数据')
+          console.log('[TabsContent] 历史记录删除成功，刷新相关数据')
 
           // 重新获取 top7 历史数据
           await queryClient.invalidateQueries({
             queryKey: ["history", "top7"]
+          })
+
+          // 刷新搜索历史记录数据
+          await queryClient.invalidateQueries({
+            queryKey: ["search-history"]
           })
         } else {
           toast.info('历史记录不存在')
@@ -165,10 +348,13 @@ export function TabsContent({ onClose }: TabsContentProps) {
 
   // 处理右键菜单
   const handleContextMenu = (tab: Tab, event: React.MouseEvent, type: TabMenuType) => {
+    // 对于历史记录补全项，强制使用 'history' 类型
+    const contextMenuType = (tab as any)._isHistoryComplement ? 'history' : type
+
     setMenuState({
       isOpen: true,
       tab,
-      type,
+      type: contextMenuType,
       position: { x: event.clientX, y: event.clientY }
     })
   }
@@ -325,23 +511,32 @@ export function TabsContent({ onClose }: TabsContentProps) {
             </div>
             <input
               type="text"
-              placeholder="搜索标签页..."
+              autoFocus={true}
+              placeholder={isCommandMode ? "按字母键快速切换标签页..." : "搜索标签页..."}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
+              onKeyDown={handleSearchKeyDown}
               className={cn(
                 "w-full max-w-[420px] py-1.5 pl-10 border border-transparent transition-all duration-200 rounded-full outline-none text-sm",
                 // 浅色模式渐变背景
                 "text-gray-800 bg-gradient-to-bl from-gray-50 to-gray-100 placeholder-gray-500 focus:border-theme-primary-300 focus:from-white focus:to-gray-50",
                 // 深色模式渐变背景
-                "dark:text-white dark:bg-gradient-to-bl dark:from-gray-800 dark:to-gray-900 dark:placeholder-gray-400 dark:focus:border-theme-primary-600 dark:focus:from-gray-700 dark:focus:to-gray-800"
+                "dark:text-white dark:bg-gradient-to-bl dark:from-gray-800 dark:to-gray-900 dark:placeholder-gray-400 dark:focus:border-theme-primary-600 dark:focus:from-gray-700 dark:focus:to-gray-800",
+                // Command 模式下的特殊样式
+                isCommandMode && [
+                  "border-theme-primary-500 dark:border-theme-primary-400",
+                  "from-theme-primary-50 to-white dark:from-theme-primary-950 dark:to-gray-800",
+                  "placeholder-theme-primary-600 dark:placeholder-theme-primary-400"
+                ]
               )}
             />
           </div>
 
           {/* 动画计数器 */}
           <div className="min-w-[96px] flex justify-end">
-            <AnimatedCounter
-              value={tabs?.length ?? 0}
+            {
+              searchQuery?.trim()?.length ? <AnimatedCounter
+                value={displayTabs.length}
               className={cn(
                 "flex-shrink-0 text-lg font-black tracking-tight transition-colors",
                 // 浅色模式
@@ -349,13 +544,17 @@ export function TabsContent({ onClose }: TabsContentProps) {
                 // 深色模式
                 "dark:text-white"
               )}
-            />
+              /> : null
+            }
           </div>
         </div>
       </div>
 
       {/* 标签页列表 */}
-      <div className={cn("overflow-y-auto flex-1 pb-24 scrollbar-macos-thin min-h-[580px] max-h-[92vh]")}>
+      <div
+        ref={containerRef}
+        className={cn("overflow-y-auto flex-1 pb-24 scrollbar-macos-thin min-h-[580px] max-h-[92vh]")}
+      >
         {displayTabs.length === 0 ? (
           <EmptyState
             {...(searchQuery
@@ -365,18 +564,34 @@ export function TabsContent({ onClose }: TabsContentProps) {
           />
         ) : (
             <>
-              {displayTabs.map((tab, idx) => (
-                <TabListItem
-                  key={`${tab.id}-${tab.url}`}
-                  tab={tab}
-                  isFirst={idx < 4}
-                  onTabClick={handleTabClick}
-                  onCloseTab={handleCloseTab}
-                  onDeleteHistory={handleDeleteHistory}
-                  onContextMenu={handleContextMenu}
-                  isClosing={closeTab.isPending}
-                />
-              ))}
+              {displayTabs.map((tab, idx) => {
+                // 查找当前标签页对应的按键
+                const tabWithKey = visibleTabsWithKeys.find(item => item.index === idx)
+                const shortcutKey = tabWithKey?.key
+
+                return (
+                  <div
+                    key={`${tab.id}-${tab.url}`}
+                    data-tab-item
+                    data-tab-index={idx}
+                  >
+                    <TabListItem
+                      tab={tab}
+                      isFirst={idx < 1}
+                      onTabClick={handleTabClick}
+                      onCloseTab={handleCloseTab}
+                      onDeleteHistory={handleDeleteHistory}
+                      onContextMenu={handleContextMenu}
+                      isClosing={closeTab.isPending}
+                      // 传递快捷键相关属性
+                      showShortcutKey={isCommandMode}
+                      shortcutKey={shortcutKey}
+                      // 传递历史记录补全标识
+                      isHistoryComplement={(tab as any)._isHistoryComplement}
+                    />
+                  </div>
+                )
+              })}
             </>
         )}
       </div>

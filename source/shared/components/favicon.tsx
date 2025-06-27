@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { cn, isBase64Image } from '../utils'
 import { DEFAULT_FAVICON_BASE64 } from '../utils/default-favicon'
+import { Globe } from 'lucide-react'
 
 interface FaviconProps {
   /** Favicon 图片 URL */
@@ -57,7 +58,7 @@ export function Favicon({
   size = 24,
   className,
   alt = "",
-  backgroundColor = "bg-gray-50"
+  backgroundColor = "bg-theme-primary-100"
 }: FaviconProps) {
   const [currentUrl, setCurrentUrl] = useState<string | null>(null)
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -186,6 +187,13 @@ export function TabFavicon({
   className?: string
   backgroundColor?: string
 }) {
+
+  if (tab.url?.includes('chrome://')) {
+    return (
+      <Globe size={size} className={cn("text-theme-primary-400", className)} />
+    )
+  }
+
   return (
     <Favicon
       src={tab.favicon || tab.favIconUrl}

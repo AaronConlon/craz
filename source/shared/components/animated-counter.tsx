@@ -28,9 +28,9 @@ function AnimatedDigit({ digit, duration = 600 }: DigitProps) {
   const targetTop = `-${digit * 100}%`
 
   return (
-    <div className="relative w-3 h-4 overflow-hidden text-white bg-transparent">
+    <div className="overflow-hidden relative w-3 h-4 text-white bg-transparent">
       <div
-        className={cn('relative flex flex-col')}
+        className={cn('flex relative flex-col')}
         style={{
           top: mounted ? targetTop : initialTop,
           transition: `top ${duration}ms ease-out`
@@ -39,7 +39,7 @@ function AnimatedDigit({ digit, duration = 600 }: DigitProps) {
         {Array.from({ length: 10 }, (_, i) => (
           <span
             key={i}
-            className='flex items-center justify-center h-4 text-sm font-bold text-center'
+            className='flex justify-center items-center h-4 text-sm font-bold text-center'
           >
             {i}
           </span>
@@ -73,7 +73,7 @@ export function AnimatedCounter({
   }
 
   return (
-    <div className='relative flex items-center p-1 px-1.5 rounded-full bg-gradient-to-br from-green-500 via-sky-400 to-sky-800'>
+    <div className='relative flex items-center p-1 px-1.5 rounded-full bg-gradient-to-br from-theme-primary-500 via-theme-primary-400 to-theme-primary-800'>
       {/* <div className='absolute w-[8px] h-[8px] triangle-left triangle-sm bg-green-500 top-[-4px] left-[-4px]'></div> */}
       {/* <div className='absolute w-[8px] h-[8px] triangle-right triangle-sm bg-sky-800 top-[-4px] right-[-4px]'></div> */}
       <div className={cn("flex items-center", className)}>

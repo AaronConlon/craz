@@ -129,20 +129,17 @@ function DockMenuItem({ item, active }: DockMenuItemProps) {
       onClick={item.onClick}
       className={cn(
         "relative flex items-center justify-center p-2 rounded-xl transition-all duration-200 group",
-        "hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-105",
-        active && "bg-gray-100 dark:bg-gray-800 scale-105"
+        "hover:bg-theme-primary-50 hover:scale-105",
+        active && "bg-theme-primary-50 scale-105"
       )}
       title={item.label}
     >
-      <div className="relative">
+      <div className={cn('relative', active && 'text-theme-primary-500')}>
         {isProfileIcon ? (
           <User
             size={24}
             className={cn(
-              "transition-colors duration-200",
-              active
-                ? "text-theme-primary-500 dark:text-theme-primary-400"
-                : "text-gray-600 dark:text-gray-400"
+              "transition-colors duration-200",            
             )}
           />
         ) : (

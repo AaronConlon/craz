@@ -1,4 +1,4 @@
-import { Copy, X } from 'lucide-react'
+import { CircleDot, Copy, X } from 'lucide-react'
 import { TabFavicon } from '~source/components'
 import { cn, copyUrl } from '~source/shared/utils'
 import type { Tab } from '../types'
@@ -13,6 +13,11 @@ interface TabListItemProps {
   isClosing?: boolean
   className?: string
   isFirst?: boolean
+  // 快捷键相关属性
+  showShortcutKey?: boolean
+  shortcutKey?: string
+  // 历史记录补全标识
+  isHistoryComplement?: boolean
 }
 
 /**
@@ -39,10 +44,13 @@ export function TabListItem({
   onContextMenu,
   isClosing = false,
   className,
-  isFirst = false
+  isFirst = false,
+  showShortcutKey = false,
+  shortcutKey,
+  isHistoryComplement = false
 }: TabListItemProps) {
-  // 判断是否为历史记录（id 为 -1）
-  const isHistory = tab.id === -1
+  // 判断是否为历史记录（id 为 -1 或历史记录补全项）
+  const isHistory = tab.id === -1 || isHistoryComplement
 
   // 获取访问次数（历史记录特有）
   const visitCount = isHistory ? (tab as any)._visitCount : null
@@ -101,15 +109,34 @@ export function TabListItem({
         {/* 标签页信息 */}
         <div className="flex flex-1 items-center space-x-3 min-w-0">
           {/* Favicon */}
-          <TabFavicon
-            tab={tab}
-            size={24}
-            className="flex-shrink-0 rounded-full"
-          />
+          <div className="relative flex-shrink-0">
+            {showShortcutKey && shortcutKey ? (
+              // 显示快捷键字母
+              <div className={cn(
+                "w-[18px] h-[18px] rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200",
+                // 浅色模式 - 最浅的主题色背景
+                "bg-theme-primary-50 text-theme-primary-700 border border-theme-primary-200",
+                // 深色模式 - 最浅的主题色背景
+                "dark:bg-theme-primary-950 dark:text-theme-primary-300 dark:border-theme-primary-800",
+                // 动画效果
+                "animate-pulse shadow-lg"
+              )}>
+                {shortcutKey.toUpperCase()}
+              </div>
+            ) : (
+                <TabFavicon
+                  tab={tab}
+                  size={18}
+                  className="flex-shrink-0 rounded-full"
+                />
+            )}
+
+          </div>
 
           {/* 标题和URL */}
           <div className="flex-1 min-w-0">
             <div className="flex gap-2 items-center">
+              <div>
               {/* 标题 */}
               <div className={cn(
                 "text-sm font-medium truncate transition-colors",
@@ -118,9 +145,18 @@ export function TabListItem({
                 // 深色模式
                 "dark:text-white",
                 // 当前活跃标签页强调色
-                !isHistory && tab.active && "text-theme-primary-700 dark:text-theme-primary-300"
+                  // !isHistory && tab.active && "text-theme-primary-700 dark:text-theme-primary-300"
               )}>
                 {tab.title}
+              </div>
+                {
+                  isHistory && (
+                    <div className='max-w-[320px] truncate text-xs opacity-50'>
+                      {tab.url}
+                    </div>
+                  )
+                }
+
               </div>
 
               {/* 标签页状态和历史记录标识 */}
@@ -128,30 +164,41 @@ export function TabListItem({
                 {/* 当前标签页标识 */}
                 {!isHistory && tab.active && (
                   <span className={cn(
-                    "text-xs px-1.5 py-0.5 rounded-full font-medium",
+                    "text-xs p-0.5 rounded-full",
                     // 浅色模式
                     "bg-theme-primary-100 text-theme-primary-700",
                     // 深色模式
                     "dark:bg-theme-primary-900 dark:text-theme-primary-300"
                   )}>
-                    当前
+                    <CircleDot size={12} className="animate-ping" />
                   </span>
                 )}
 
                 {/* 历史记录标识 */}
-                {isHistory && isFirst && (
+                {isHistory && isFirst && !isHistoryComplement && (
                   <span className={cn(
-                    "text-xs px-1.5 py-0.5 rounded-full font-medium",
+                    "text-xs p-0.5 rounded-full",
                     // 浅色模式
-                    "bg-blue-100 text-blue-700",
-                    // 深色模式
-                    "dark:bg-blue-900 dark:text-blue-300"
+                    "bg-theme-primary-50 text-theme-primary-500",
                   )}>
-                    最常访问
+                    🔥
                   </span>
                 )}
 
-                {/* 访问次数 */}
+                {/* 历史记录补全标识 */}
+                {isHistoryComplement && (
+                  <span className={cn(
+                    "text-xs px-1.5 py-0.5 rounded-full",
+                    // 浅色模式
+                    "bg-theme-primary-50 text-theme-primary-600 border border-theme-primary-200",
+                    // 深色模式
+                    "dark:bg-theme-primary-950 dark:text-theme-primary-400 dark:border-theme-primary-800"
+                  )}>
+                    History
+                  </span>
+                )}
+
+                {/* 访问次数
                 {isHistory && visitCount && isFirst && (
                   <span className={cn(
                     "text-xs px-1.5 py-0.5 rounded-full",
@@ -160,9 +207,9 @@ export function TabListItem({
                     // 深色模式
                     "dark:bg-gray-700 dark:text-gray-300"
                   )}>
-                    {visitCount}次
+
                   </span>
-                )}
+                )} */}
 
                 {/* 固定标签页标识 */}
                 {!isHistory && tab.pinned && (
@@ -179,7 +226,7 @@ export function TabListItem({
               </div>
             </div>
 
-            <div className="flex items-center group">
+            <div className="hidden items-center group">
               {/* URL */}
               <div className={cn(
                 "text-xs truncate transition-colors max-w-[200px] items-center inline-block",
@@ -192,13 +239,31 @@ export function TabListItem({
               )}>
                 {tab.url}
               </div>
-              <Copy onClick={handleCopyUrl} className="w-[16px] h-[16px] ml-1 cursor-pointer hover:text-theme-primary-600 dark:hover:text-theme-primary-400 opacity-0 group-hover:opacity-100 group-hover:text-theme-primary-600 dark:group-hover:text-theme-primary-400" />
             </div>
           </div>
         </div>
 
         {/* 关闭/删除按钮 */}
         <div className="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
+          <button onClick={handleCopyUrl}
+            className={cn(
+              "p-1.5 rounded-md transition-all duration-200",
+              // 浅色模式渐变背景
+              "text-gray-500 hover:bg-gradient-to-bl hover:from-gray-200 hover:to-gray-100 hover:text-theme-primary-900",
+              // 深色模式渐变背景
+              "dark:text-gray-400 dark:hover:bg-gradient-to-bl dark:hover:from-gray-700 dark:hover:to-gray-800 dark:hover:text-theme-primary-400",
+              // 主题色支持 - 活跃状态下的按钮渐变
+              !isHistory && tab.active && [
+                "text-theme-primary-600 hover:bg-gradient-to-bl hover:from-theme-primary-100 hover:to-theme-primary-50 hover:text-theme-primary-900",
+                "dark:text-theme-primary-400 dark:hover:bg-gradient-to-bl dark:hover:from-theme-primary-900 dark:hover:to-theme-primary-950 dark:hover:text-theme-primary-400"
+              ],
+              // 禁用状态
+              isClosing && "cursor-not-allowed opacity-50"
+            )}
+            title={'复制网址'}
+          >
+            <Copy size={14} />
+          </button>
           <button
             onClick={handleClose}
             disabled={isClosing}
