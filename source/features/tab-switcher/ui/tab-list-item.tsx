@@ -1,4 +1,4 @@
-import { CircleDot, Copy, X } from 'lucide-react'
+import { CircleDot, Copy, History, Pin, X } from 'lucide-react'
 import { TabFavicon } from '~source/components'
 import { cn, copyUrl } from '~source/shared/utils'
 import type { Tab } from '../types'
@@ -137,18 +137,18 @@ export function TabListItem({
           <div className="flex-1 min-w-0">
             <div className="flex gap-2 items-center">
               <div>
-              {/* 标题 */}
-              <div className={cn(
-                "text-sm font-medium truncate transition-colors",
-                // 浅色模式
-                "text-gray-900",
-                // 深色模式
-                "dark:text-white",
+                {/* 标题 */}
+                <div className={cn(
+                  "text-sm font-medium truncate transition-colors",
+                  // 浅色模式
+                  "text-gray-900",
+                  // 深色模式
+                  "dark:text-white",
                 // 当前活跃标签页强调色
                   // !isHistory && tab.active && "text-theme-primary-700 dark:text-theme-primary-300"
-              )}>
-                {tab.title}
-              </div>
+                )}>
+                  {tab.title}
+                </div>
                 {
                   isHistory && (
                     <div className='max-w-[320px] truncate text-xs opacity-50'>
@@ -187,16 +187,18 @@ export function TabListItem({
 
                 {/* 历史记录补全标识 */}
                 {isHistoryComplement && (
-                  <span className={cn(
-                    "text-xs px-1.5 py-0.5 rounded-full",
+                  <span title='历史记录' className={cn(
+                    "text-xs p-0.5 rounded-full",
                     // 浅色模式
-                    "bg-theme-primary-50 text-theme-primary-600 border border-theme-primary-200",
+                    "bg-theme-primary-100 text-theme-primary-700",
                     // 深色模式
-                    "dark:bg-theme-primary-950 dark:text-theme-primary-400 dark:border-theme-primary-800"
+                    "dark:bg-theme-primary-900 dark:text-theme-primary-300"
                   )}>
-                    History
+                    <History size={12} />
                   </span>
                 )}
+
+
 
                 {/* 访问次数
                 {isHistory && visitCount && isFirst && (
@@ -216,11 +218,11 @@ export function TabListItem({
                   <span className={cn(
                     "text-xs px-1.5 py-0.5 rounded-full",
                     // 浅色模式
-                    "bg-orange-100 text-orange-600",
+                    "bg-theme-primary-100 text-theme-primary-600",
                     // 深色模式
-                    "dark:bg-orange-900 dark:text-orange-300"
+                    "dark:bg-theme-primary-900 dark:text-theme-primary-300"
                   )}>
-                    固定
+                    <Pin size={12} />
                   </span>
                 )}
               </div>
@@ -249,13 +251,13 @@ export function TabListItem({
             className={cn(
               "p-1.5 rounded-md transition-all duration-200",
               // 浅色模式渐变背景
-              "text-gray-500 hover:bg-gradient-to-bl hover:from-gray-200 hover:to-gray-100 hover:text-theme-primary-900",
+              "text-gray-500 hover:bg-gradient-to-bl hover:from-gray-200 hover:to-gray-100 hover:text-theme-primary-600",
               // 深色模式渐变背景
               "dark:text-gray-400 dark:hover:bg-gradient-to-bl dark:hover:from-gray-700 dark:hover:to-gray-800 dark:hover:text-theme-primary-400",
               // 主题色支持 - 活跃状态下的按钮渐变
               !isHistory && tab.active && [
-                "text-theme-primary-600 hover:bg-gradient-to-bl hover:from-theme-primary-100 hover:to-theme-primary-50 hover:text-theme-primary-900",
-                "dark:text-theme-primary-400 dark:hover:bg-gradient-to-bl dark:hover:from-theme-primary-900 dark:hover:to-theme-primary-950 dark:hover:text-theme-primary-400"
+                "text-theme-primary-600 hover:bg-gradient-to-bl hover:from-theme-primary-100 hover:to-theme-primary-50 hover:text-theme-primary-700",
+                "dark:text-theme-primary-400 dark:hover:bg-gradient-to-bl dark:hover:from-theme-primary-900 dark:hover:to-theme-primary-950 dark:hover:text-theme-primary-300"
               ],
               // 禁用状态
               isClosing && "cursor-not-allowed opacity-50"
@@ -270,13 +272,13 @@ export function TabListItem({
             className={cn(
               "p-1.5 rounded-md transition-all duration-200",
               // 浅色模式渐变背景
-              "text-gray-500 hover:bg-gradient-to-bl hover:from-gray-200 hover:to-gray-100 hover:text-red-600",
+              "text-gray-500 hover:bg-gradient-to-bl hover:from-gray-200 hover:to-gray-100 hover:text-theme-primary-600",
               // 深色模式渐变背景
-              "dark:text-gray-400 dark:hover:bg-gradient-to-bl dark:hover:from-gray-700 dark:hover:to-gray-800 dark:hover:text-red-400",
+              "dark:text-gray-400 dark:hover:bg-gradient-to-bl dark:hover:from-gray-700 dark:hover:to-gray-800 dark:hover:text-theme-primary-400",
               // 主题色支持 - 活跃状态下的按钮渐变
               !isHistory && tab.active && [
-                "text-theme-primary-600 hover:bg-gradient-to-bl hover:from-theme-primary-100 hover:to-theme-primary-50 hover:text-red-600",
-                "dark:text-theme-primary-400 dark:hover:bg-gradient-to-bl dark:hover:from-theme-primary-900 dark:hover:to-theme-primary-950 dark:hover:text-red-400"
+                "text-theme-primary-600 hover:bg-gradient-to-bl hover:from-theme-primary-100 hover:to-theme-primary-50 hover:text-theme-primary-700",
+                "dark:text-theme-primary-400 dark:hover:bg-gradient-to-bl dark:hover:from-theme-primary-900 dark:hover:to-theme-primary-950 dark:hover:text-theme-primary-300"
               ],
               // 禁用状态
               isClosing && "cursor-not-allowed opacity-50"

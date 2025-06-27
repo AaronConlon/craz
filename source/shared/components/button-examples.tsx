@@ -70,7 +70,7 @@ export function ButtonExamples() {
       <section>
         <h3 className="mb-4 text-lg font-semibold">Custom Styling</h3>
         <div className="flex flex-wrap gap-4">
-          <Button className="bg-purple-600 hover:bg-purple-700">
+          <Button className="bg-theme-primary-600 hover:bg-theme-primary-700">
             Custom Purple
           </Button>
           <Button className="bg-gradient-to-r from-pink-500 to-violet-500">

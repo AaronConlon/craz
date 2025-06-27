@@ -23,7 +23,7 @@ export function LanguageSettings({ currentLanguage, onLanguageChange }: Language
             className={`
               flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all duration-200
               ${currentLanguage === lang
-                ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+              ? 'border-theme-primary-500 bg-theme-primary-50 text-theme-primary-700 font-medium'
                 : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
               }
             `}

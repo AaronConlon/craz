@@ -26,7 +26,7 @@ export function LoginView({
       <div className="p-6 mx-auto max-w-lg bg-white rounded-xl shadow-sm dark:bg-gray-800">
         {/* Logo */}
         <div className="flex gap-2 items-center mb-6">
-          <div className="flex justify-center items-center w-7 h-7 bg-purple-600 rounded-lg dark:bg-purple-500">
+          <div className="flex justify-center items-center w-7 h-7 bg-theme-primary-600 rounded-lg dark:bg-theme-primary-500">
             <div className="w-3 h-3 bg-white rounded-sm" />
           </div>
           <span className="text-sm font-semibold text-gray-900 dark:text-white">Finnger</span>
@@ -78,7 +78,7 @@ export function LoginView({
 
           <div className="flex justify-between items-center">
             <label className="flex gap-2 items-center">
-              <div className="flex justify-center items-center w-4 h-4 bg-purple-600 rounded dark:bg-purple-500">
+              <div className="flex justify-center items-center w-4 h-4 bg-theme-primary-600 rounded dark:bg-theme-primary-500">
                 <Check className="w-2 h-2 text-white" />
               </div>
               <span className="text-xs text-gray-700 dark:text-gray-300">Remember me</span>
@@ -91,7 +91,7 @@ export function LoginView({
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full text-white bg-purple-600 dark:bg-purple-500 hover:bg-purple-700 dark:hover:bg-purple-600"
+            className="w-full text-white bg-theme-primary-600 dark:bg-theme-primary-500 hover:bg-theme-primary-700 dark:hover:bg-theme-primary-600"
           >
             {isLoading ? 'Loading...' : 'Sign In'}
           </Button>

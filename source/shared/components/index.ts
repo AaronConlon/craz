@@ -1,4 +1,5 @@
 export { Button } from "./button"
+export { Tooltip } from "./tooltip"
 export { ColorPicker } from "./color-picker"
 export { EmptyState } from "./empty-state"
 export { Favicon } from "./favicon"

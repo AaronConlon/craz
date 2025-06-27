@@ -41,8 +41,8 @@ const getVariantClasses = (variant: ButtonVariant = 'default'): string => {
     case 'destructive':
       return cn(
         // 背景色
-        'bg-red-600 hover:bg-red-700 active:bg-red-800',
-        'dark:bg-red-500 dark:hover:bg-red-600 dark:active:bg-red-700',
+        'bg-theme-primary-600 hover:bg-theme-primary-700 active:bg-theme-primary-800',
+        'dark:bg-theme-primary-500 dark:hover:bg-theme-primary-600 dark:active:bg-theme-primary-700',
         // 文字色
         'text-white',
         // 焦点环

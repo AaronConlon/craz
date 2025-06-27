@@ -147,7 +147,7 @@ export function BookmarksView({ mode, teamId }: BookmarksViewProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[320px]">
-        <div className="w-8 h-8 rounded-full border-2 border-blue-500 animate-spin border-t-transparent" />
+        <div className="w-8 h-8 rounded-full border-2 border-theme-primary-500 animate-spin border-t-transparent" />
       </div>
     )
   }
@@ -211,7 +211,7 @@ export function BookmarksView({ mode, teamId }: BookmarksViewProps) {
                         className={cn(
                           "flex-1 flex items-center justify-center gap-1 p-2 rounded-md text-sm transition-colors",
                           filters.sortOrder === 'desc'
-                            ? "bg-blue-100 text-blue-700 border border-blue-300"
+                            ? "bg-theme-primary-100 text-theme-primary-700 border border-theme-primary-300"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         )}
                       >
@@ -223,7 +223,7 @@ export function BookmarksView({ mode, teamId }: BookmarksViewProps) {
                         className={cn(
                           "flex-1 flex items-center justify-center gap-1 p-2 rounded-md text-sm transition-colors",
                           filters.sortOrder === 'asc'
-                            ? "bg-blue-100 text-blue-700 border border-blue-300"
+                            ? "bg-theme-primary-100 text-theme-primary-700 border border-theme-primary-300"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         )}
                       >
@@ -244,7 +244,7 @@ export function BookmarksView({ mode, teamId }: BookmarksViewProps) {
                         className={cn(
                           "flex-1 flex items-center justify-center gap-1 p-2 rounded-md text-sm transition-colors",
                           filters.displayMode === 'list'
-                            ? "bg-blue-100 text-blue-700 border border-blue-300"
+                            ? "bg-theme-primary-100 text-theme-primary-700 border border-theme-primary-300"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         )}
                       >
@@ -256,7 +256,7 @@ export function BookmarksView({ mode, teamId }: BookmarksViewProps) {
                         className={cn(
                           "flex-1 flex items-center justify-center gap-1 p-2 rounded-md text-sm transition-colors",
                           filters.displayMode === 'grid'
-                            ? "bg-blue-100 text-blue-700 border border-blue-300"
+                            ? "bg-theme-primary-100 text-theme-primary-700 border border-theme-primary-300"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         )}
                       >
@@ -272,7 +272,7 @@ export function BookmarksView({ mode, teamId }: BookmarksViewProps) {
 
           {/* 中间：搜索框 */}
           <div className="flex relative flex-grow justify-center items-center mx-auto">
-            <div className='bg-green-800 rounded-full left-[28px] p-[4px] relative'>
+            <div className='bg-theme-primary-600 rounded-full left-[28px] p-[4px] relative'>
               <Search size={16} color='white' />
             </div>
             <input

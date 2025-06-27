@@ -19,6 +19,7 @@ export interface SocialMediaConfig {
   email: string
   twitterHandle: string
   twitterUrl: string
+  wechatId: string
 }
 
 /**
@@ -67,11 +68,13 @@ export function getSocialMediaConfig(): SocialMediaConfig {
   const twitterHandle =
     process.env.PLASMO_PUBLIC_TWITTER_HANDLE || "AaronConlonDev"
   const twitterUrl = `https://x.com/${twitterHandle.replace("@", "")}`
+  const wechatId = process.env.PLASMO_PUBLIC_WECHAT_ID || "Pls-recovery"
 
   return {
     email,
     twitterHandle,
-    twitterUrl
+    twitterUrl,
+    wechatId
   }
 }
 

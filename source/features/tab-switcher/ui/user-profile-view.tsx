@@ -3,12 +3,13 @@ import {
   CheckCircle,
   LogOut,
   Mail,
+  MessageCircle,
   Share,
   Twitter
 } from 'lucide-react'
 import type { AuthUser } from '~/source/shared/api/types'
 import { getShareConfig, getSocialMediaConfig } from '~/source/shared/config/env'
-import { Button } from '~source/shared/components'
+import { Button, Tooltip } from '~source/shared/components'
 // 用户信息视图
 interface UserProfileViewProps {
   user: AuthUser | null
@@ -142,6 +143,22 @@ export function UserProfileView({ user, onLogout }: UserProfileViewProps) {
                 <Twitter size={16} className="text-theme-primary-500" />
                 <span className="text-gray-900 dark:text-white">推特</span>
               </a>
+
+              {/* 微信 */}
+              <Tooltip
+                content={
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="text-xs font-medium">微信号</div>
+                    <div className="font-mono text-sm">{socialMediaConfig.wechatId}</div>
+                  </div>
+                }
+                position="top"
+              >
+                <div className="flex gap-2 items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-theme-bg-secondary hover:bg-theme-bg-accent text-theme-text-primary hover:text-theme-primary-600 dark:hover:text-theme-primary-400 cursor-pointer">
+                  <MessageCircle size={16} className="text-theme-primary-500" />
+                  <span className="text-gray-900 dark:text-white">微信</span>
+                </div>
+              </Tooltip>
             </div>
           </div>
 

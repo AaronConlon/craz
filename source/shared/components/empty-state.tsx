@@ -93,7 +93,7 @@ export const EmptyStateVariants = {
   noSearchResults: {
     title: '没有找到匹配的结果',
     description: '尝试调整搜索条件或使用其他关键词',
-    iconColor: 'text-blue-400'
+    iconColor: 'text-theme-primary-400'
   },
 
   /** 无数据 */
@@ -107,20 +107,20 @@ export const EmptyStateVariants = {
   noBookmarks: {
     title: '还没有收藏',
     description: '收藏喜欢的内容，方便随时查看',
-    iconColor: 'text-yellow-400'
+    iconColor: 'text-theme-primary-400'
   },
 
   /** 无标签页 */
   noTabs: {
     title: '没有打开的标签页',
     description: '当前浏览器中没有打开任何标签页',
-    iconColor: 'text-green-400'
+    iconColor: 'text-theme-primary-400'
   },
 
   /** 加载失败 */
   loadError: {
     title: '加载失败',
     description: '无法获取数据，请稍后重试',
-    iconColor: 'text-red-400'
+    iconColor: 'text-theme-primary-400'
   }
 }

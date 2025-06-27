@@ -31,7 +31,7 @@ export const ThemeOption: React.FC<ThemeOptionProps> = ({
       className={cn(
         "flex gap-3 items-center p-3 rounded-lg border-2 transition-all hover:bg-gray-50",
         isSelected
-          ? "bg-blue-50 border-blue-500"
+          ? "bg-theme-primary-50 border-theme-primary-500"
           : "border-gray-200 hover:border-gray-300"
       )}
     >
@@ -51,7 +51,7 @@ export const ThemeOption: React.FC<ThemeOptionProps> = ({
 
       {/* 选中指示器 */}
       {isSelected && (
-        <div className="flex flex-shrink-0 justify-center items-center w-5 h-5 bg-blue-500 rounded-full">
+        <div className="flex flex-shrink-0 justify-center items-center w-5 h-5 bg-theme-primary-500 rounded-full">
           <CheckIcon size="sm" />
         </div>
       )}

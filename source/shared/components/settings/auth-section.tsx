@@ -24,19 +24,19 @@ export function AuthSection({ authStatus }: AuthSectionProps) {
       </div>
 
       {authStatus.isLoggedIn ? (
-        <div className="p-4 border border-green-200 rounded-lg bg-green-50">
+        <div className="p-4 border border-theme-primary-200 rounded-lg bg-theme-primary-50 dark:border-theme-primary-800 dark:bg-theme-primary-950">
           <div className="flex items-center gap-3 mb-3">
-            <Cloud className="text-green-600" size={20} />
+            <Cloud className="text-theme-primary-600 dark:text-theme-primary-400" size={20} />
             <div>
-              <h4 className="font-medium text-green-800">已登录</h4>
-              <p className="text-sm text-green-600">
+              <h4 className="font-medium text-theme-primary-800 dark:text-theme-primary-200">已登录</h4>
+              <p className="text-sm text-theme-primary-600 dark:text-theme-primary-400">
                 {authStatus.username || '用户'}，设置已同步到云端
               </p>
             </div>
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="text-sm text-green-600">
+            <div className="text-sm text-theme-primary-600 dark:text-theme-primary-400">
               <p>• 设置自动同步</p>
               <p>• 跨设备共享</p>
               <p>• 数据安全备份</p>
@@ -44,7 +44,7 @@ export function AuthSection({ authStatus }: AuthSectionProps) {
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-red-600 transition-colors bg-white border border-red-200 rounded-lg hover:bg-red-50"
+              className="flex items-center gap-2 px-4 py-2 text-theme-primary-600 transition-colors bg-white border border-theme-primary-200 rounded-lg hover:bg-theme-primary-50 dark:text-theme-primary-400 dark:bg-gray-800 dark:border-theme-primary-800 dark:hover:bg-theme-primary-950"
             >
               <LogOut size={16} />
               退出登录
@@ -72,7 +72,7 @@ export function AuthSection({ authStatus }: AuthSectionProps) {
 
             <button
               onClick={handleLogin}
-              className="flex items-center gap-2 px-4 py-2 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
+                className="flex items-center gap-2 px-4 py-2 text-white transition-colors bg-theme-primary-600 rounded-lg hover:bg-theme-primary-700"
             >
               <LogIn size={16} />
               立即登录

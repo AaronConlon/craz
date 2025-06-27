@@ -130,7 +130,7 @@ function DockItem({ item, className }: DockItemProps) {
 
         {/* 数量标记 */}
         {typeof item.count === 'number' && item.count > 0 && (
-          <div className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1 shadow-sm">
+          <div className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-theme-primary-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1 shadow-sm">
             {item.count > 99 ? '99+' : item.count}
           </div>
         )}

@@ -188,7 +188,7 @@ export function TabFavicon({
   backgroundColor?: string
 }) {
 
-  if (tab.url?.includes('chrome://')) {
+  if (!tab.favicon?.startsWith('http')) {
     return (
       <Globe size={size} className={cn("text-theme-primary-400", className)} />
     )

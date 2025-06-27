@@ -23,7 +23,7 @@ export function FontSizeSettings({ currentFontSize, onFontSizeChange }: FontSize
             className={`
               flex items-center justify-between w-full px-4 py-3 rounded-lg border-2 transition-all duration-200
               ${currentFontSize === size
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
+              ? 'border-theme-primary-500 bg-theme-primary-50 text-theme-primary-700'
                 : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
               }
             `}

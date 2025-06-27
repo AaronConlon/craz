@@ -166,12 +166,25 @@ export function TabsContent({ onClose }: TabsContentProps) {
 
   // 处理搜索框的键盘事件
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    // 检测 Alt (Windows) 或 Option (macOS) 键
-    const isAltKey = event.altKey || event.key === 'Alt' || event.key === 'Option'
 
-    if (isAltKey) {
+    // 如果按下 enter 键，则直接打开第一个搜索结果
+    if (event.key === 'Enter') {
+      console.log('🎯 按下 enter 键，直接打开第一个搜索结果')
       event.preventDefault()
-      // 如果已经在快捷键模式，则退出；否则进入
+      const firstTab = displayTabs[0]
+      console.log('🎯 第一个搜索结果:', firstTab)
+      if (firstTab) {
+        handleTabClick(firstTab)
+      }
+    }
+
+    // 检测 Command (macOS) 或 Windows 键
+    const isCommandKey = event.metaKey || event.key === 'Meta' || event.key === 'cmd'
+    const isWindowsKey = event.key === 'Win' || event.key === 'Windows'
+
+    if (isCommandKey || isWindowsKey) {
+      event.preventDefault()
+    // 如果已经在 Command 模式，则退出；否则进入
       if (isCommandMode) {
         setIsCommandMode(false)
         setVisibleTabsWithKeys([])
@@ -183,12 +196,12 @@ export function TabsContent({ onClose }: TabsContentProps) {
         return
       } else {
         setIsCommandMode(true)
-        console.log('🎯 激活 Alt 快捷键模式')
+        console.log('🎯 激活 Command 模式')
         return
       }
     }
 
-    // 在快捷键模式下处理字母按键
+    // 在 Command 模式下处理字母按键
     if (isCommandMode && event.key.length === 1 && /^[a-zA-Z]$/.test(event.key)) {
       event.preventDefault()
       const pressedKey = event.key.toLowerCase()
@@ -200,7 +213,7 @@ export function TabsContent({ onClose }: TabsContentProps) {
       return
     }
 
-    // Escape 键退出快捷键模式
+    // Escape 键退出 Command 模式
     if (event.key === 'Escape' && isCommandMode) {
       event.preventDefault()
       setIsCommandMode(false)
@@ -208,7 +221,7 @@ export function TabsContent({ onClose }: TabsContentProps) {
       return
     }
 
-    // 在快捷键模式下阻止正常的输入行为
+    // 在 Command 模式下阻止正常的输入行为
     if (isCommandMode) {
       event.preventDefault()
       return
@@ -224,14 +237,14 @@ export function TabsContent({ onClose }: TabsContentProps) {
     setSearchQuery(e.target.value)
   }
 
-  // 监听快捷键模式变化，自动更新可视区域
+  // 监听 Command 模式变化，自动更新可视区域
   useEffect(() => {
     if (isCommandMode && containerRef.current) {
-      console.log('🎯 Alt 快捷键模式激活，触发 favicon 更新')
+      console.log('🎯 Command 模式激活，触发 favicon 更新')
       updateVisibleTabs()
     } else if (!isCommandMode && visibleTabsWithKeys.length > 0) {
       // 只在有快捷键时才清空，避免无限循环
-      console.log('🎯 Alt 快捷键模式退出，清空快捷键')
+      console.log('🎯 Command 模式退出，清空快捷键')
       setVisibleTabsWithKeys([])
     }
   }, [isCommandMode]) // 移除 displayTabs 依赖，避免无限循环
@@ -255,9 +268,16 @@ export function TabsContent({ onClose }: TabsContentProps) {
   const handleTabClick = async (tab: Tab) => {
     try {
       if (tab.id === -1 || (tab as any)._isHistoryComplement) {
-      // 这是历史记录项或补全项，在新标签页中打开
-        window.open(tab.url, '_blank')
-        onClose?.()
+
+        const record = tabs.find(i => i.url === tab.url)
+        if (record) {
+          await switchTab.mutateAsync(record.id!)
+          onClose?.()
+        } else {
+          // 这是历史记录项或补全项，在新标签页中打开
+          window.open(tab.url, '_blank')
+          onClose?.()
+        }
       } else {
         // 这是真实的标签页，切换到该标签页
         await switchTab.mutateAsync(tab.id!)
@@ -537,13 +557,13 @@ export function TabsContent({ onClose }: TabsContentProps) {
             {
               searchQuery?.trim()?.length ? <AnimatedCounter
                 value={displayTabs.length}
-              className={cn(
-                "flex-shrink-0 text-lg font-black tracking-tight transition-colors",
-                // 浅色模式
-                "text-gray-800",
-                // 深色模式
-                "dark:text-white"
-              )}
+                className={cn(
+                  "flex-shrink-0 text-lg font-black tracking-tight transition-colors",
+                  // 浅色模式
+                  "text-gray-800",
+                  // 深色模式
+                  "dark:text-white"
+                )}
               /> : null
             }
           </div>
@@ -569,29 +589,29 @@ export function TabsContent({ onClose }: TabsContentProps) {
                 const tabWithKey = visibleTabsWithKeys.find(item => item.index === idx)
                 const shortcutKey = tabWithKey?.key
 
-                return (
-                  <div
-                    key={`${tab.id}-${tab.url}`}
-                    data-tab-item
-                    data-tab-index={idx}
-                  >
-                    <TabListItem
-                      tab={tab}
-                      isFirst={idx < 1}
-                      onTabClick={handleTabClick}
-                      onCloseTab={handleCloseTab}
-                      onDeleteHistory={handleDeleteHistory}
-                      onContextMenu={handleContextMenu}
-                      isClosing={closeTab.isPending}
-                      // 传递快捷键相关属性
-                      showShortcutKey={isCommandMode}
-                      shortcutKey={shortcutKey}
-                      // 传递历史记录补全标识
-                      isHistoryComplement={(tab as any)._isHistoryComplement}
-                    />
-                  </div>
-                )
-              })}
+              return (
+                <div
+                  key={`${tab.id}-${tab.url}`}
+                  data-tab-item
+                  data-tab-index={idx}
+                >
+                  <TabListItem
+                    tab={tab}
+                    isFirst={idx < 1}
+                    onTabClick={handleTabClick}
+                    onCloseTab={handleCloseTab}
+                    onDeleteHistory={handleDeleteHistory}
+                    onContextMenu={handleContextMenu}
+                    isClosing={closeTab.isPending}
+                    // 传递快捷键相关属性
+                    showShortcutKey={isCommandMode}
+                    shortcutKey={shortcutKey}
+                    // 传递历史记录补全标识
+                    isHistoryComplement={(tab as any)._isHistoryComplement}
+                  />
+                </div>
+              )
+            })}
             </>
         )}
       </div>
