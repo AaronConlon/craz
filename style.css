@@ -3,6 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
+
 /* 界面模式支持 - 使用 data-appearance 属性 */
 [data-appearance="dark"] {
   /* 深色模式基础样式 */
@@ -27,6 +28,11 @@
 }
 
 @layer base {
+  /* 插件全局字体设置 - 只影响插件内部 */
+  html, body, #__plasmo, #__plasmo * {
+    font-family: 'Jost', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
   /* CSS变量定义 - 主题系统 */
   :root {
     /* 主题色变量 - 默认使用 amber 主题 */

@@ -1,16 +1,18 @@
 import { sendToBackground } from "@plasmohq/messaging"
 import { useQueryClient } from "@tanstack/react-query"
 import { BrushCleaning, Redo2, Search } from 'lucide-react'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 import { AnimatedCounter, EmptyState, EmptyStateVariants } from '~source/components'
 import { cn, copyShare } from '~source/shared/utils'
 import { useDebounce, useSearchHistory } from '../../../shared/hooks'
-import { useAllTabs, useCleanDuplicateTabs, useCloseTab, useCreateBookmark, useDefaultHistoryTop7, useSwitchTab } from '../model/use-tab-switcher'
+import { useAllTabs, useCleanDuplicateTabs, useCloseTab, useCreateBookmark, useSwitchTab } from '../model/use-tab-switcher'
 import { useRestoreLastClosedTab } from '../model/useRestoreLastClosedTab'
 import type { Tab } from '../types'
 import { TabListItem } from './tab-list-item'
 import { TabMenu, type TabMenuType } from './tab-menu'
+import { getLocalHistory } from '~source/shared/api/messages'
+import { useQuery } from '@tanstack/react-query'
 
 interface TabsContentProps {
   onClose?: () => void
@@ -19,7 +21,18 @@ interface TabsContentProps {
 export function TabsContent({ onClose }: TabsContentProps) {
   const queryClient = useQueryClient()
   const { data: tabs } = useAllTabs()
-  const { data: top7Response } = useDefaultHistoryTop7()
+
+  // 获取本地历史记录（最常访问的记录）
+  const { data: historyResponse } = useQuery({
+    queryKey: ["local-history", "mostVisited"],
+    queryFn: async () => {
+      return await getLocalHistory({
+        type: "mostVisited",
+        limit: 20 // 获取更多记录用于筛选
+      })
+    },
+    staleTime: 1000 * 60 * 5, // 5分钟内数据有效
+  })
 
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedQuery = useDebounce(searchQuery, 200)
@@ -27,8 +40,7 @@ export function TabsContent({ onClose }: TabsContentProps) {
   // 搜索历史记录用于补全结果
   const { data: searchHistoryResponse } = useSearchHistory(
     debouncedQuery,
-    10, // 最多获取10条历史记录
-    !!debouncedQuery.trim() // 只在有搜索内容时启用
+    5, // 最多获取5条历史记录
   )
 
   // 键盘快捷键相关状态
@@ -58,29 +70,76 @@ export function TabsContent({ onClose }: TabsContentProps) {
   const cleanDuplicateTabs = useCleanDuplicateTabs()
   const restoreLastClosedTab = useRestoreLastClosedTab()
 
+  // 使用 useMemo 计算默认标签页
+  const defaultTabs = useMemo(() => {
+    if (!tabs || !historyResponse?.data) {
+      return []
+    }
 
-  // 从历史记录响应中提取数据数组，并转换为统一格式
-  const top7Records = top7Response?.data || []
+    const currentTabs = tabs
+    const historyRecords = historyResponse.data
 
-  // 将 VisitRecord 转换为 Tab 格式以保持一致性
-  const top7Tabs: Tab[] = top7Records.map((record, index) => ({
-    id: -1, // 历史记录没有 tab id，使用 -1 表示
-    url: record.url,
-    title: record.title,
-    favIconUrl: record.favicon,
-    active: false,
-    highlighted: false,
-    pinned: false,
-    selected: false,
-    windowId: -1,
-    index: index, // 使用数组索引作为排序
-    incognito: false,
-    discarded: false,
-    autoDiscardable: false,
-    groupId: -1,
-    // 添加自定义属性来存储访问次数
-    _visitCount: record.visitCount
-  } as Tab & { _visitCount: number }))
+
+    // 1. 从当前打开的标签页中选择前两个最近访问的（排除当前激活标签页）
+    const recentCurrentTabs = currentTabs
+      .filter(tab => {
+        // 确保有 lastAccessed 属性
+        return (tab as any).lastAccessed
+      })
+      .sort((a, b) => ((b as any).lastAccessed || 0) - ((a as any).lastAccessed || 0)) // 按最近访问时间排序
+      .slice(1, 4) // 取前三个
+
+    // 2. 获取当前标签页的 URL 集合，用于去重（包含当前激活标签页）
+    const currentTabUrls = new Set(currentTabs.map(tab => tab.url))
+
+    // 3. 从历史记录中筛选不存在于当前打开标签页的记录，并按域名去重
+    const seenDomains = new Set<string>()
+    const historyTabs: Tab[] = []
+
+    for (const record of historyRecords) {
+      if (historyTabs.length >= 5) break // 最多5个
+
+      // 跳过已在当前标签页中的URL（包括当前激活标签页）
+      if (currentTabUrls.has(record.url)) continue
+
+      // 获取域名
+      let domain: string
+      try {
+        domain = new URL(record.url).hostname
+      } catch {
+        continue // 跳过无效的URL
+      }
+
+      // 跳过已见过的域名
+      if (seenDomains.has(domain)) continue
+      seenDomains.add(domain)
+
+      // 转换为 Tab 格式
+      historyTabs.push({
+        id: -1, // 历史记录没有 tab id，使用 -1 表示
+        url: record.url,
+        title: record.title,
+        favIconUrl: record.favicon,
+        active: false,
+        highlighted: false,
+        pinned: false,
+        selected: false,
+        windowId: -1,
+        index: recentCurrentTabs.length + historyTabs.length,
+        incognito: false,
+        discarded: false,
+        autoDiscardable: false,
+        groupId: -1,
+        // 添加自定义属性来存储访问次数
+        _visitCount: record.visitCount
+      } as Tab & { _visitCount: number })
+    }
+
+    // 4. 合并结果：前两个当前标签页 + 最多5个不同域名的历史记录
+    const res = [...recentCurrentTabs, ...historyTabs]
+    console.log('🔍 默认标签页:', res)
+    return res
+  }, [tabs, historyResponse])
 
   // 过滤标签页
   const filteredTabs = tabs?.filter(tab =>
@@ -89,7 +148,7 @@ export function TabsContent({ onClose }: TabsContentProps) {
   ) ?? []
 
   // 主要显示数据
-  let displayTabs = searchQuery?.trim()?.length ? filteredTabs : top7Tabs
+  let displayTabs = searchQuery?.trim()?.length ? filteredTabs : defaultTabs
 
   // 补全逻辑：如果搜索结果少于4个且有搜索内容，用历史记录补全
   if (searchQuery?.trim()?.length && displayTabs.length < 4 && searchHistoryResponse?.data) {
@@ -345,9 +404,9 @@ export function TabsContent({ onClose }: TabsContentProps) {
           toast.success('已删除历史记录')
           console.log('[TabsContent] 历史记录删除成功，刷新相关数据')
 
-          // 重新获取 top7 历史数据
+          // 重新获取本地历史数据
           await queryClient.invalidateQueries({
-            queryKey: ["history", "top7"]
+            queryKey: ["local-history", "mostVisited"]
           })
 
           // 刷新搜索历史记录数据

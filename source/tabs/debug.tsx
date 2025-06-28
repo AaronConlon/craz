@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { ChromeApiService } from '~source/shared/api/chrome'
+import "~style.css"
+import "data-text:~assets/fonts.css"
 
 /**
  * Tabs API 调试页面
@@ -104,16 +106,16 @@ function TabsDebugPage() {
   }, [])
 
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-white min-h-screen">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Chrome Tabs API 调试页面</h1>
+    <div className="p-6 mx-auto max-w-4xl min-h-screen bg-white">
+      <h1 className="mb-6 text-2xl font-bold text-gray-800">Chrome Tabs API 调试页面</h1>
 
       {/* 测试按钮 */}
-      <div className="space-y-4 mb-6">
+      <div className="mb-6 space-y-4">
         <div className="flex gap-4">
           <button
             onClick={testDirectTabsAPI}
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? '测试中...' : '测试直接调用 Tabs API'}
           </button>
@@ -121,21 +123,21 @@ function TabsDebugPage() {
           <button
             onClick={testChromeApiService}
             disabled={loading}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+            className="px-4 py-2 text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
           >
             {loading ? '测试中...' : '测试 ChromeApiService'}
           </button>
 
           <button
             onClick={testPermissions}
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            className="px-4 py-2 text-white bg-purple-600 rounded hover:bg-purple-700"
           >
             检查权限
           </button>
 
           <button
             onClick={clearLogs}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+            className="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700"
           >
             清空日志
           </button>
@@ -144,16 +146,16 @@ function TabsDebugPage() {
 
       {/* 错误显示 */}
       {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="p-4 mb-6 text-red-700 bg-red-100 rounded border border-red-400">
           <strong>错误：</strong> {error}
         </div>
       )}
 
       {/* 结果显示 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-2">
         {/* 活动标签页 */}
-        <div className="bg-gray-50 p-4 rounded">
-          <h2 className="text-lg font-semibold mb-2">当前活动标签页</h2>
+        <div className="p-4 bg-gray-50 rounded">
+          <h2 className="mb-2 text-lg font-semibold">当前活动标签页</h2>
           {activeTab ? (
             <div className="space-y-1 text-sm">
               <p><strong>标题:</strong> {activeTab.title}</p>
@@ -167,18 +169,18 @@ function TabsDebugPage() {
         </div>
 
         {/* 所有标签页概览 */}
-        <div className="bg-gray-50 p-4 rounded">
-          <h2 className="text-lg font-semibold mb-2">所有标签页概览</h2>
+        <div className="p-4 bg-gray-50 rounded">
+          <h2 className="mb-2 text-lg font-semibold">所有标签页概览</h2>
           <p className="text-sm">总数: {tabs.length}</p>
           {tabs.length > 0 && (
-            <div className="mt-2 max-h-40 overflow-y-auto">
+            <div className="overflow-y-auto mt-2 max-h-40">
               {tabs.slice(0, 5).map((tab, index) => (
                 <div key={tab.id} className="text-xs text-gray-600 truncate">
                   {index + 1}. {tab.title}
                 </div>
               ))}
               {tabs.length > 5 && (
-                <p className="text-xs text-gray-400 mt-1">还有 {tabs.length - 5} 个标签页...</p>
+                <p className="mt-1 text-xs text-gray-400">还有 {tabs.length - 5} 个标签页...</p>
               )}
             </div>
           )}
@@ -186,9 +188,9 @@ function TabsDebugPage() {
       </div>
 
       {/* 日志输出 */}
-      <div className="bg-black text-green-400 p-4 rounded font-mono text-sm">
-        <h2 className="text-white font-semibold mb-2">调试日志</h2>
-        <div className="max-h-60 overflow-y-auto space-y-1">
+      <div className="p-4 font-mono text-sm text-green-400 bg-black rounded">
+        <h2 className="mb-2 font-semibold text-white">调试日志</h2>
+        <div className="overflow-y-auto space-y-1 max-h-60">
           {logs.length === 0 ? (
             <p className="text-gray-500">暂无日志</p>
           ) : (

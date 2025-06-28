@@ -1,7 +1,14 @@
+import type { PlasmoCSConfig } from "plasmo"
 import { useState, Suspense, useEffect, useRef } from "react"
 import cssText from "data-text:~style.css"
 import sonnerCssText from "data-text:~sonner.css"
+import fontsCssText from "data-text:./fonts.css"
 import { Toaster } from "sonner"
+
+// 配置 Content Script 以包含字体
+export const config: PlasmoCSConfig = {
+  css: ["fonts.css"]
+}
 import { ReactQueryProvider, SuspenseLoader, ErrorBoundary } from "~source/components"
 import { TabSwitcher } from "~source/features/tab-switcher"
 import { eventStoppers, keyCheckers } from "~source/shared/utils"
@@ -10,7 +17,7 @@ import { ContainerProvider } from "~source/shared/components/container-provider"
 
 export const getStyle = () => {
   const style = document.createElement("style")
-  style.textContent = cssText + '\n' + sonnerCssText
+  style.textContent = fontsCssText + '\n' + cssText + '\n' + sonnerCssText
   return style
 }
 

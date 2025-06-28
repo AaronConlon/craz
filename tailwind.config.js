@@ -31,6 +31,11 @@ module.exports = {
   ],
   theme: {
     extend: {
+      // 字体族配置
+      fontFamily: {
+        'jost': ['Jost', 'Inter', 'system-ui', 'sans-serif'],
+        'sans': ['Jost', 'Inter', 'system-ui', 'sans-serif'], // 将 Jost 设为默认字体
+      },
       // 自定义毛玻璃效果类
       backdropBlur: {
         'xs': '2px',

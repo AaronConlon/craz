@@ -1,4 +1,8 @@
-import type { PlasmoMessaging } from "@plasmohq/messaging"
+import type { PlasmoMessaging } from "@plasmohq/messaging";
+
+
+
+
 
 export interface SwitchTabRequest {
   tabId: number
@@ -40,15 +44,64 @@ const handler: PlasmoMessaging.MessageHandler<
   try {
     const tabId = req.body.tabId
 
-    // 激活指定的标签页
-    await chrome.tabs.update(tabId, { active: true })
-    console.log(`Background switch-tab: 标签页 ${tabId} 已激活`)
-
-    // 获取标签页信息以切换到对应窗口
+    // 先获取标签页信息
+    console.log(`Background switch-tab: 正在获取标签页 ${tabId} 的信息...`)
     const tab = await chrome.tabs.get(tabId)
-    if (tab.windowId) {
-      await chrome.windows.update(tab.windowId, { focused: true })
-      console.log(`Background switch-tab: 窗口 ${tab.windowId} 已聚焦`)
+
+    if (!tab) {
+      throw new Error(`标签页 ${tabId} 不存在`)
+    }
+
+    console.log(
+      `Background switch-tab: 获取标签页信息 ${tabId} (${tab.title}) 在窗口 ${tab.windowId}`
+    )
+
+    // 获取最后聚焦的窗口
+    console.log(`Background switch-tab: 正在获取最后聚焦的窗口...`)
+    const lastFocusedWindow = await chrome.windows.getLastFocused()
+
+    if (!lastFocusedWindow) {
+      throw new Error("无法获取最后聚焦的窗口")
+    }
+
+    console.log(`Background switch-tab: 最后聚焦的窗口 ${lastFocusedWindow.id}`)
+
+    // 如果标签页在不同的窗口，先切换窗口焦点
+    if (tab.windowId && tab.windowId !== lastFocusedWindow.id) {
+      console.log(
+        `Background switch-tab: 标签页在不同窗口 ${tab.windowId}，先切换窗口焦点`
+      )
+
+      try {
+        await chrome.windows.update(tab.windowId, { focused: true })
+        console.log(`Background switch-tab: 窗口 ${tab.windowId} 已聚焦`)
+
+        // 等待一下确保窗口切换完成
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      } catch (windowError) {
+        console.error(`Background switch-tab: 切换窗口失败:`, windowError)
+        throw new Error(`切换到窗口 ${tab.windowId} 失败: ${windowError}`)
+      }
+    } else {
+      console.log(`Background switch-tab: 标签页在同一窗口，无需切换窗口`)
+    }
+
+    // 然后激活指定的标签页
+    console.log(`Background switch-tab: 正在激活标签页 ${tabId}...`)
+    try {
+      // 使用多种方式确保标签页被正确激活
+      await chrome.tabs.update(tabId, { active: true })
+
+      // 同时使用 highlight 确保标签页被选中
+      await chrome.tabs.highlight({
+        windowId: tab.windowId,
+        tabs: [tab.index]
+      })
+
+      console.log(`Background switch-tab: 标签页 ${tabId} 已激活`)
+    } catch (tabError) {
+      console.error(`Background switch-tab: 激活标签页失败:`, tabError)
+      throw new Error(`激活标签页 ${tabId} 失败: ${tabError}`)
     }
 
     console.log(
