@@ -15,8 +15,6 @@ export function ProfileView() {
     logout,
   } = useUserProfile()
 
-  console.log('user:', user)
-
   const ref = useContainerRef()
 
 

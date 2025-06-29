@@ -67,6 +67,7 @@ const handler: PlasmoMessaging.MessageHandler<
           }
         } catch (error) {
           console.warn("[Background] 从标签页获取 favicon 失败:", error)
+          finalFavicon = DEFAULT_FAVICON_BASE64
         }
       }
 
@@ -79,14 +80,9 @@ const handler: PlasmoMessaging.MessageHandler<
         } catch (error) {
           console.warn("[Background] 获取网站 favicon 失败:", error)
           // 使用默认 favicon
-          finalFavicon = `data:image/png;base64,${DEFAULT_FAVICON_BASE64}`
+          finalFavicon = DEFAULT_FAVICON_BASE64
         }
       }
-    }
-
-    // 确保 favicon 是 base64 格式
-    if (finalFavicon && !finalFavicon.startsWith("data:image/")) {
-      finalFavicon = `data:image/png;base64,${finalFavicon}`
     }
 
     // 添加到 IndexedDB

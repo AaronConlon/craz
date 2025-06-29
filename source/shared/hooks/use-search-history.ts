@@ -12,21 +12,25 @@ import {
  * 功能：
  * - 根据搜索查询获取匹配的历史记录
  * - 自动缓存搜索结果
- * - 支持启用/禁用查询
+ * - 查询为空时不执行请求
  *
  * @param query 搜索关键词
  * @param limit 返回结果数量限制
- * @param enabled 是否启用查询
  */
-export function useSearchHistory(query: string, limit = 10, enabled = true) {
+export function useSearchHistory(query: string, limit = 10) {
+  const trimmedQuery = query?.trim()
+
   return useQuery({
-    queryKey: ["search-history", query, limit],
-    queryFn: async (): Promise<GetLocalHistoryResponse> => {
-      console.log("[useSearchHistory] 搜索历史记录:", { query, limit })
+    queryKey: ["search-history", trimmedQuery, limit],
+    queryFn: async () => {
+      console.log("[useSearchHistory] 搜索历史记录:", {
+        query: trimmedQuery,
+        limit
+      })
 
       const request: GetLocalHistoryRequest = {
         type: "search",
-        query: query.trim(),
+        query: trimmedQuery,
         limit
       }
 
@@ -41,9 +45,9 @@ export function useSearchHistory(query: string, limit = 10, enabled = true) {
         response.data?.length,
         "条记录"
       )
-      return response
+      return response.data || []
     },
-    enabled: enabled && !!query.trim(),
+    enabled: Boolean(trimmedQuery && trimmedQuery.length > 0), // 只有当查询非空时才执行
     staleTime: 1000 * 60 * 5, // 5分钟内数据有效
     gcTime: 1000 * 60 * 10 // 10分钟后清理缓存
   })

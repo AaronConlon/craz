@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { ChromeApiService } from '~source/shared/api/chrome'
 import "~style.css"
-import "data-text:~assets/fonts.css"
+import "data-text:~contents/fonts.css"
+import { TabMenu } from '../features/tab-switcher/ui/tab-menu'
+import type { Tab } from '../features/tab-switcher/types'
 
 /**
  * Tabs API 调试页面
@@ -13,11 +15,14 @@ function TabsDebugPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [logs, setLogs] = useState<string[]>([])
+  const [menuState, setMenuState] = useState({
+    isOpen: false,
+    position: { x: 0, y: 0 }
+  })
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
     setLogs(prev => [...prev, `[${timestamp}] ${message}`])
-    console.log(message)
   }
 
   const testDirectTabsAPI = async () => {
@@ -100,10 +105,59 @@ function TabsDebugPage() {
     setLogs([])
   }
 
+  const handleRightClick = (event: React.MouseEvent) => {
+    event.preventDefault()
+    setMenuState({
+      isOpen: true,
+      position: { x: event.clientX, y: event.clientY }
+    })
+  }
+
+  const handleCloseMenu = () => {
+    setMenuState(prev => ({ ...prev, isOpen: false }))
+  }
+
+  const handleMenuAction = (action: string, tab: Tab) => {
+    console.log('🎯 Menu action:', action, 'Tab:', tab.title)
+
+    // 模拟不同的操作处理
+    switch (action) {
+      case 'share-website-copy-url':
+        console.log('✅ 复制标题和网址:', tab.title, tab.url)
+        break
+      case 'share-website-copy-markdown':
+        console.log('✅ 复制 Markdown 链接:', `[${tab.title}](${tab.url})`)
+        break
+      case 'share-website-to-x':
+        console.log('✅ 分享到 X:', tab.title, tab.url)
+        break
+      default:
+        console.log('🔍 其他操作:', action)
+    }
+  }
+
   useEffect(() => {
     addLog("页面加载完成")
     testPermissions()
   }, [])
+
+  // 模拟一个标签页数据
+  const mockTab: Tab = {
+    id: 1,
+    url: 'https://example.com',
+    title: '测试网站',
+    favIconUrl: 'https://example.com/favicon.ico',
+    active: false,
+    highlighted: false,
+    pinned: false,
+    selected: false,
+    windowId: 1,
+    index: 0,
+    incognito: false,
+    discarded: false,
+    autoDiscardable: true,
+    groupId: -1
+  }
 
   return (
     <div className="p-6 mx-auto max-w-4xl min-h-screen bg-white">
@@ -200,6 +254,67 @@ function TabsDebugPage() {
           )}
         </div>
       </div>
+
+      <div className="mt-6 space-y-4">
+        <div className="p-6 bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+            测试说明
+          </h2>
+          <ul className="space-y-2 text-gray-600 dark:text-gray-300">
+            <li>• 右键点击下方的测试区域打开菜单</li>
+            <li>• 悬停到"分享网站"菜单项应该显示子菜单</li>
+            <li>• 子菜单应该包含：复制标题和网址、复制 Markdown 链接、分享到 X</li>
+            <li>• 检查控制台输出确认功能正常</li>
+          </ul>
+        </div>
+
+        <div
+          className="p-8 bg-white rounded-lg border border-gray-200 transition-colors cursor-pointer dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+          onContextMenu={handleRightClick}
+        >
+          <div className="text-center">
+            <div className="mb-2 text-4xl">🖱️</div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              右键点击这里
+            </h3>
+            <p className="mt-2 text-gray-600 dark:text-gray-300">
+              测试右键菜单和子菜单功能
+            </p>
+            <div className="p-3 mt-4 bg-gray-100 rounded-lg dark:bg-gray-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                模拟标签页: {mockTab.title}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                {mockTab.url}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-700">
+          <h3 className="mb-2 text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+            🔍 调试检查点
+          </h3>
+          <ul className="space-y-1 text-sm text-yellow-700 dark:text-yellow-300">
+            <li>1. 右键菜单是否正常显示？</li>
+            <li>2. "分享网站" 菜单项是否有右箭头 ➤？</li>
+            <li>3. 悬停到 "分享网站" 是否显示子菜单？</li>
+            <li>4. 子菜单是否在正确位置显示？</li>
+            <li>5. 点击子菜单项是否触发正确的 action？</li>
+            <li>6. 鼠标离开是否正确隐藏子菜单？</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* 右键菜单组件 */}
+      <TabMenu
+        isOpen={menuState.isOpen}
+        onClose={handleCloseMenu}
+        tab={mockTab}
+        type="current"
+        position={menuState.position}
+        onAction={handleMenuAction}
+      />
     </div>
   )
 }

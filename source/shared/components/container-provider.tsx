@@ -1,4 +1,5 @@
 import { createContext, useContext, useRef, type ReactNode, type RefObject } from 'react'
+import { eventStoppers } from '../utils'
 
 // 容器上下文类型
 interface ContainerContextType {
@@ -28,7 +29,7 @@ export function ContainerProvider({ children, className = '' }: ContainerProvide
 
   return (
     <ContainerContext.Provider value={contextValue}>
-      <div ref={containerRef} className={className} id="craz-container">
+      <div ref={containerRef} className={className} id="craz-container" {...eventStoppers.all}>
         {children}
       </div>
     </ContainerContext.Provider>

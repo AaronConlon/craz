@@ -144,22 +144,16 @@ function SettingsContent() {
   }
 
   const handleCustomColorChange = (color: string) => {
-    console.log('handleCustomColorChange called with:', color)
-
     // 检查是否是预设主题色
     const presetTheme = Object.entries(THEME_COLORS).find(([themeColor, colorValue]) =>
       themeColor !== 'custom' && colorValue === color
     )
 
-    console.log('presetTheme found:', presetTheme)
-
     if (presetTheme) {
       // 如果是预设颜色，设置对应的主题
-      console.log('Setting preset theme:', presetTheme[0])
       handleSettingChange('themeColor', presetTheme[0] as ThemeColor)
     } else {
       // 如果是自定义颜色，设置自定义主题并保存颜色
-      console.log('Setting custom color:', color)
       setCustomColor(color)
       handleSettingChange('themeColor', 'custom')
     }

@@ -8,7 +8,7 @@ import { ThemeProvider } from "~source/shared/components"
 import { TabSwitcher } from "~source/features/tab-switcher"
 import "./style.css"
 import "./sonner.css"
-import "data-text:~assets/fonts.css"
+import "data-text:~contents/fonts.css"
 
 function IndexPopup() {
   return (

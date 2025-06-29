@@ -1,3 +1,4 @@
+import axios, { AxiosInstance } from "axios";
 import { z } from "zod";
 
 
@@ -784,4 +785,34 @@ export class MainApiClient extends ApiClient {
   async health(): Promise<Response> {
     return this.get("/")
   }
+}
+
+/**
+ * API 客户端配置
+ */
+interface ApiClientConfig {
+  baseURL: string
+  timeout?: number
+  headers?: Record<string, string>
+}
+
+/**
+ * 默认 API 客户端配置
+ */
+const DEFAULT_CONFIG: ApiClientConfig = {
+  baseURL: "http://localhost:8787",
+  timeout: 5000,
+  headers: {
+    "Content-Type": "application/json"
+  }
+}
+
+/**
+ * 创建测试 API 客户端
+ */
+export function createTestApiClient(
+  config: Partial<ApiClientConfig> = {}
+): AxiosInstance {
+  const mergedConfig = { ...DEFAULT_CONFIG, ...config }
+  return axios.create(mergedConfig)
 }

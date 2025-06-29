@@ -1,6 +1,6 @@
 import React from 'react'
 import "~style.css"
-import "data-text:~assets/fonts.css"
+import "data-text:~contents/fonts.css"
 
 /**
  * 字体测试页面
@@ -25,13 +25,13 @@ function FontTestPage() {
   ]
 
   return (
-    <div className="p-8 max-w-6xl mx-auto bg-white min-h-screen font-jost">
-      <h1 className="text-4xl font-bold mb-8 text-gray-800">Jost 字体测试页面</h1>
+    <div className="p-8 mx-auto max-w-6xl min-h-screen bg-white font-jost">
+      <h1 className="mb-8 text-4xl font-bold text-gray-800">Jost 字体测试页面</h1>
 
       {/* 基本信息 */}
-      <div className="mb-8 p-6 bg-gray-50 rounded-lg">
-        <h2 className="text-2xl font-semibold mb-4">字体信息</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <div className="p-6 mb-8 bg-gray-50 rounded-lg">
+        <h2 className="mb-4 text-2xl font-semibold">字体信息</h2>
+        <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
           <div>
             <strong>字体名称:</strong> Jost
           </div>
@@ -49,11 +49,11 @@ function FontTestPage() {
 
       {/* 字号测试 */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">字号测试 (Font Sizes)</h2>
+        <h2 className="mb-4 text-2xl font-semibold">字号测试 (Font Sizes)</h2>
         <div className="space-y-4">
           {fontSizes.map((size) => (
-            <div key={size.name} className="flex items-center gap-4">
-              <div className="w-20 text-sm text-gray-600 font-mono">
+            <div key={size.name} className="flex gap-4 items-center">
+              <div className="w-20 font-mono text-sm text-gray-600">
                 {size.name}
               </div>
               <div className={`${size.class} ${size.weight} font-jost`}>
@@ -66,11 +66,11 @@ function FontTestPage() {
 
       {/* 字重测试 */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">字重测试 (Font Weights)</h2>
+        <h2 className="mb-4 text-2xl font-semibold">字重测试 (Font Weights)</h2>
         <div className="space-y-4">
           {fontWeights.map((weight) => (
-            <div key={weight.name} className="flex items-center gap-4">
-              <div className="w-32 text-sm text-gray-600 font-mono">
+            <div key={weight.name} className="flex gap-4 items-center">
+              <div className="w-32 font-mono text-sm text-gray-600">
                 {weight.name}
               </div>
               <div className={`text-lg ${weight.class} font-jost`}>
@@ -83,12 +83,12 @@ function FontTestPage() {
 
       {/* 实际使用场景 */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">实际使用场景</h2>
+        <h2 className="mb-4 text-2xl font-semibold">实际使用场景</h2>
 
         {/* 标题和段落 */}
         <div className="mb-6">
-          <h3 className="text-xl font-semibold mb-2 font-jost">标题文本示例</h3>
-          <p className="text-base text-gray-700 leading-relaxed font-jost">
+          <h3 className="mb-2 text-xl font-semibold font-jost">标题文本示例</h3>
+          <p className="text-base leading-relaxed text-gray-700 font-jost">
             这是一段使用 Jost 字体的正文内容。Jost 是一个现代的几何无衬线字体，
             设计简洁优雅，非常适合用于用户界面和品牌设计。它具有良好的可读性和
             现代感，支持多种字重，可以满足不同的设计需求。
@@ -97,12 +97,12 @@ function FontTestPage() {
 
         {/* 按钮示例 */}
         <div className="mb-6">
-          <h3 className="text-xl font-semibold mb-2 font-jost">按钮示例</h3>
+          <h3 className="mb-2 text-xl font-semibold font-jost">按钮示例</h3>
           <div className="flex gap-4">
-            <button className="px-4 py-2 bg-theme-primary-600 text-white rounded-lg font-medium font-jost hover:bg-theme-primary-700 transition-colors">
+            <button className="px-4 py-2 font-medium text-white rounded-lg transition-colors bg-theme-primary-600 font-jost hover:bg-theme-primary-700">
               主要按钮
             </button>
-            <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium font-jost hover:bg-gray-50 transition-colors">
+            <button className="px-4 py-2 font-medium text-gray-700 rounded-lg border border-gray-300 transition-colors font-jost hover:bg-gray-50">
               次要按钮
             </button>
           </div>
@@ -110,26 +110,26 @@ function FontTestPage() {
 
         {/* 表单示例 */}
         <div className="mb-6">
-          <h3 className="text-xl font-semibold mb-2 font-jost">表单示例</h3>
-          <div className="max-w-md space-y-4">
+          <h3 className="mb-2 text-xl font-semibold font-jost">表单示例</h3>
+          <div className="space-y-4 max-w-md">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 font-jost">
+              <label className="block mb-1 text-sm font-medium text-gray-700 font-jost">
                 用户名
               </label>
               <input
                 type="text"
                 placeholder="请输入用户名"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-jost placeholder-gray-500 focus:ring-2 focus:ring-theme-primary-500 focus:border-theme-primary-500"
+                className="px-3 py-2 w-full placeholder-gray-500 rounded-lg border border-gray-300 font-jost focus:ring-2 focus:ring-theme-primary-500 focus:border-theme-primary-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 font-jost">
+              <label className="block mb-1 text-sm font-medium text-gray-700 font-jost">
                 密码
               </label>
               <input
                 type="password"
                 placeholder="请输入密码"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg font-jost placeholder-gray-500 focus:ring-2 focus:ring-theme-primary-500 focus:border-theme-primary-500"
+                className="px-3 py-2 w-full placeholder-gray-500 rounded-lg border border-gray-300 font-jost focus:ring-2 focus:ring-theme-primary-500 focus:border-theme-primary-500"
               />
             </div>
           </div>
@@ -138,16 +138,16 @@ function FontTestPage() {
 
       {/* 字体加载检测 */}
       <div className="p-6 bg-blue-50 rounded-lg">
-        <h3 className="text-xl font-semibold mb-2">字体加载检测</h3>
+        <h3 className="mb-2 text-xl font-semibold">字体加载检测</h3>
         <p className="text-sm text-gray-600">
           如果字体加载成功，您应该看到清晰、现代的 Jost 字体。如果字体未加载，
           浏览器将回退到 Inter 或系统默认字体。
         </p>
-        <div className="mt-4 p-4 bg-white rounded border">
+        <div className="p-4 mt-4 bg-white rounded border">
           <div style={{ fontFamily: 'Jost, Inter, system-ui, sans-serif' }} className="text-lg">
             ✓ 这行文字使用的是 Jost 字体 (如果加载成功)
           </div>
-          <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="text-lg mt-2">
+          <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }} className="mt-2 text-lg">
             ✗ 这行文字使用的是回退字体 (Inter/system-ui)
           </div>
         </div>

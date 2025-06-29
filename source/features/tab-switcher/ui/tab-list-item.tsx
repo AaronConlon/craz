@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { CircleDot, Copy, History, Pin, X } from 'lucide-react'
 import { TabFavicon } from '~source/components'
 import { cn, copyUrl } from '~source/shared/utils'
@@ -10,6 +11,8 @@ interface TabListItemProps {
   onCloseTab: (tabId: number, event: React.MouseEvent) => void
   onDeleteHistory: (url: string) => void
   onContextMenu?: (tab: Tab, event: React.MouseEvent, type: 'current' | 'history') => void
+  onOgHover?: (tab: Tab, position: { x: number; y: number }) => void
+  onOgLeave?: () => void
   isClosing?: boolean
   className?: string
   isFirst?: boolean
@@ -42,6 +45,8 @@ export function TabListItem({
   onCloseTab,
   onDeleteHistory,
   onContextMenu,
+  onOgHover,
+  onOgLeave,
   isClosing = false,
   className,
   isFirst = false,
@@ -52,8 +57,7 @@ export function TabListItem({
   // 判断是否为历史记录（id 为 -1 或历史记录补全项）
   const isHistory = tab.id === -1 || isHistoryComplement
 
-  // 获取访问次数（历史记录特有）
-  const visitCount = isHistory ? (tab as any)._visitCount : null
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const handleClick = () => {
     onTabClick(tab)
@@ -71,6 +75,7 @@ export function TabListItem({
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault() // 禁止默认右键菜单
+    e.stopPropagation()
 
     if (onContextMenu) {
       const type = isHistory ? 'history' : 'current'
@@ -89,22 +94,47 @@ export function TabListItem({
     }
   }
 
+  // 处理鼠标悬停进入
+  const handleMouseEnter = () => {
+    if (!tab.url || !onOgHover) return
+
+    // 获取容器位置信息
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      onOgHover(tab, {
+        x: rect.right,
+        y: rect.top
+      })
+    }
+  }
+
+  // 处理鼠标悬停离开
+  const handleMouseLeave = () => {
+    if (onOgLeave) {
+      onOgLeave()
+    }
+  }
+
   return (
-    <div
-      onClick={handleClick}
-      onContextMenu={handleContextMenu}
-      className={cn(
-        // 基础样式
-        "p-3 transition-all duration-200 cursor-pointer select-none group",
-        // 浅色模式悬停
-        "hover:bg-gray-50 hover:border-l-2 hover:border-l-theme-primary-500",
-        // 深色模式悬停
-        "dark:hover:bg-gray-900 dark:hover:border-l-theme-primary-400",
-        // 禁用状态
-        isClosing && "opacity-50 cursor-not-allowed",
-        className
-      )}
-    >
+    <div className="relative">
+      <div
+        ref={containerRef}
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={cn(
+          // 基础样式
+          "p-3 transition-all duration-200 cursor-pointer select-none group",
+          // 浅色模式悬停
+          "hover:bg-gray-50 hover:border-l-2 hover:border-l-theme-primary-500",
+          // 深色模式悬停
+          "dark:hover:bg-gray-900 dark:hover:border-l-theme-primary-400",
+          // 禁用状态
+          isClosing && "opacity-50 cursor-not-allowed",
+          className
+        )}
+      >
       <div className="flex justify-between items-center">
         {/* 标签页信息 */}
         <div className="flex flex-1 items-center space-x-3 min-w-0">
@@ -136,7 +166,7 @@ export function TabListItem({
           {/* 标题和URL */}
           <div className="flex-1 min-w-0">
             <div className="flex gap-2 items-center">
-              <div>
+                <div style={{ maxWidth: '90%' }}>
                 {/* 标题 */}
                 <div className={cn(
                   "text-sm font-medium truncate transition-colors",
@@ -146,7 +176,8 @@ export function TabListItem({
                   "dark:text-white",
                 // 当前活跃标签页强调色
                   // !isHistory && tab.active && "text-theme-primary-700 dark:text-theme-primary-300"
-                )}>
+                  )}
+                  >
                   {tab.title}
                 </div>
                 {
@@ -176,7 +207,7 @@ export function TabListItem({
 
                 {/* 历史记录标识 */}
                 {isHistory && isFirst && !isHistoryComplement && (
-                  <span className={cn(
+                    <span title='最常访问' className={cn(
                     "text-xs p-0.5 rounded-full",
                     // 浅色模式
                     "bg-theme-primary-50 text-theme-primary-500",
@@ -215,7 +246,7 @@ export function TabListItem({
 
                 {/* 固定标签页标识 */}
                 {!isHistory && tab.pinned && (
-                  <span className={cn(
+                    <span title='固定标签页' className={cn(
                     "text-xs px-1.5 py-0.5 rounded-full",
                     // 浅色模式
                     "bg-theme-primary-100 text-theme-primary-600",
@@ -288,6 +319,7 @@ export function TabListItem({
             <X size={14} />
           </button>
         </div>
+      </div>
       </div>
     </div>
   )

@@ -10,6 +10,8 @@ export { Toggle } from "./toggle"
 export { AdvancedDock } from "./advanced-dock"
 export { AnimatedCounter } from "./animated-counter"
 export { MacOSDock } from "./macos-dock"
+export { DockItemMenu } from "./dock-item-menu"
+export { OgPreview } from "./og-preview"
 
 // Theme Components
 export { ThemeProvider, useTheme } from "./theme-provider"

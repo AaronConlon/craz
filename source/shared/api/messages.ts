@@ -1,34 +1,18 @@
-import { sendToBackground } from "@plasmohq/messaging"
+import { sendToBackground } from "@plasmohq/messaging";
+
+
 
 // 导入类型定义
-import type {
-  CloseTabRequest,
-  CloseTabResponse
-} from "../../../background/messages/close-tab"
+import type { CloseTabRequest, CloseTabResponse } from "../../../background/messages/close-tab";
 // 云书签相关类型定义和函数
-import type {
-  CloudBookmarkActionRequest,
-  CloudBookmarkActionResponse
-} from "../../../background/messages/cloud-bookmark-action"
-import type { GetDefaultSearchTabsRequest } from "../../../background/messages/get-default-search-tabs"
-import type {
-  GetTabsRequest,
-  GetTabsResponse
-} from "../../../background/messages/get-tabs"
-import type {
-  SwitchTabRequest,
-  SwitchTabResponse
-} from "../../../background/messages/switch-tab"
-import type { UserSettings } from "../types/settings"
-import type {
-  AuthResponse,
-  AuthUser,
-  Bookmark,
-  CreateBookmarkDto,
-  LoginRequest,
-  RegisterRequest,
-  UpdateBookmarkDto
-} from "./types"
+import type { CloudBookmarkActionRequest, CloudBookmarkActionResponse } from "../../../background/messages/cloud-bookmark-action";
+import type { GetDefaultSearchTabsRequest } from "../../../background/messages/get-default-search-tabs";
+import type { GetTabsRequest, GetTabsResponse } from "../../../background/messages/get-tabs";
+import type { SwitchTabRequest, SwitchTabResponse } from "../../../background/messages/switch-tab";
+import type { TabActionRequest, TabActionResponse } from "../../../background/messages/tab-action";
+import type { UserSettings } from "../types/settings";
+import type { AuthResponse, AuthUser, Bookmark, CreateBookmarkDto, LoginRequest, RegisterRequest, UpdateBookmarkDto } from "./types";
+
 
 /**
  * Messaging API 服务
@@ -72,6 +56,18 @@ export const closeTab = async (
 ): Promise<CloseTabResponse> => {
   return await sendToBackground<CloseTabRequest, CloseTabResponse>({
     name: "close-tab",
+    body: request
+  })
+}
+
+/**
+ * 执行标签页操作
+ */
+export const tabAction = async (
+  request: TabActionRequest
+): Promise<TabActionResponse> => {
+  return await sendToBackground<TabActionRequest, TabActionResponse>({
+    name: "tab-action",
     body: request
   })
 }

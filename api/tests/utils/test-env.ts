@@ -1,3 +1,5 @@
+import { RedisCache } from "../../src/utils/redis-cache"
+
 /**
  * 测试环境配置
  */
@@ -81,4 +83,65 @@ export function generateTestUser() {
     password: "password123",
     receiveOfficialMessages: true
   }
+}
+
+/**
+ * 等待服务可用
+ */
+async function waitForService(
+  check: () => Promise<boolean>,
+  timeout: number = 5000,
+  interval: number = 500
+): Promise<boolean> {
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < timeout) {
+    try {
+      if (await check()) {
+        return true
+      }
+    } catch (error) {
+      console.warn("服务检查失败:", error)
+    }
+    await new Promise((resolve) => setTimeout(resolve, interval))
+  }
+
+  return false
+}
+
+/**
+ * 检查 Redis 连接
+ */
+async function checkRedisConnection(): Promise<boolean> {
+  const redis = new RedisCache()
+  try {
+    return await redis.ping()
+  } catch (error) {
+    console.error("Redis 连接失败:", error)
+    return false
+  }
+}
+
+/**
+ * 设置测试环境
+ */
+export async function setupTestEnv(): Promise<void> {
+  console.log("⏳ 正在设置测试环境...")
+
+  // 检查 Redis 连接
+  console.log("🔄 检查 Redis 连接...")
+  const redisAvailable = await waitForService(checkRedisConnection)
+  if (!redisAvailable) {
+    throw new Error("Redis 服务不可用")
+  }
+  console.log("✅ Redis 连接成功")
+}
+
+/**
+ * 清理测试环境
+ */
+export async function cleanupTestEnv(): Promise<void> {
+  console.log("🧹 正在清理测试环境...")
+  // 这里可以添加清理逻辑
+  console.log("✅ 环境清理完成")
 }

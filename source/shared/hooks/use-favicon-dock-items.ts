@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useState } from "react"
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery
+} from "@tanstack/react-query"
+import { useCallback } from "react"
 
 import { sendToBackground } from "@plasmohq/messaging"
 
@@ -45,26 +50,25 @@ export interface UseFaviconDockItemsReturn {
   hasItem: (url: string) => boolean
 }
 
+// Query Key 常量
+const FAVICON_DOCK_ITEMS_QUERY_KEY = ["favicon-dock-items"] as const
+
 /**
  * Favicon Dock Items Hook
  *
  * 功能：
- * - 管理 favicon dock 项目的状态
+ * - 使用 useSuspenseQuery 管理 favicon dock 项目的状态
  * - 提供增删改查操作
  * - 自动处理加载状态和错误
- * - 支持实时更新
+ * - 操作成功后自动重新获取数据
  */
 export function useFaviconDockItems(): UseFaviconDockItemsReturn {
-  const [items, setItems] = useState<FaviconDockItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
-  // 获取所有项目
-  const fetchItems = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
+  // 使用 useSuspenseQuery 获取数据
+  const { data: items } = useSuspenseQuery({
+    queryKey: FAVICON_DOCK_ITEMS_QUERY_KEY,
+    queryFn: async (): Promise<FaviconDockItem[]> => {
       const response = await sendToBackground<
         GetFaviconDockItemsRequest,
         GetFaviconDockItemsResponse
@@ -73,58 +77,48 @@ export function useFaviconDockItems(): UseFaviconDockItemsReturn {
         body: {}
       })
 
+      console.log("[useFaviconDockItems] 获取项目:", response)
+
       if (response.success && response.items) {
-        setItems(response.items)
+        return response.items
       } else {
         throw new Error(response.error || "获取项目失败")
       }
-    } catch (err) {
-      console.error("[useFaviconDockItems] 获取项目失败:", err)
-      setError(err instanceof Error ? err.message : "获取项目失败")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+    },
+    staleTime: 1000 * 60 * 5 // 5分钟内数据有效
+  })
 
-  // 添加新项目
-  const addItem = useCallback(
-    async (
+  // 添加项目 mutation
+  const addItemMutation = useMutation({
+    mutationFn: async (
       request: Omit<AddFaviconDockItemRequest, "tabId"> & { tabId?: number }
-    ): Promise<boolean> => {
-      try {
-        setError(null)
+    ): Promise<FaviconDockItem> => {
+      const response = await sendToBackground<
+        AddFaviconDockItemRequest,
+        AddFaviconDockItemResponse
+      >({
+        name: "add-favicon-dock-item",
+        body: request
+      })
 
-        const response = await sendToBackground<
-          AddFaviconDockItemRequest,
-          AddFaviconDockItemResponse
-        >({
-          name: "add-favicon-dock-item",
-          body: request
-        })
-
-        if (response.success && response.item) {
-          // 添加到本地状态
-          setItems((prev) =>
-            [...prev, response.item!].sort((a, b) => a.order - b.order)
-          )
-          return true
-        } else {
-          throw new Error(response.error || "添加项目失败")
-        }
-      } catch (err) {
-        console.error("[useFaviconDockItems] 添加项目失败:", err)
-        setError(err instanceof Error ? err.message : "添加项目失败")
-        return false
+      if (response.success && response.item) {
+        return response.item
+      } else {
+        throw new Error(response.error || "添加项目失败")
       }
     },
-    []
-  )
+    onSuccess: () => {
+      // 操作成功后重新获取数据
+      queryClient.invalidateQueries({ queryKey: FAVICON_DOCK_ITEMS_QUERY_KEY })
+    },
+    onError: (error) => {
+      console.error("[useFaviconDockItems] 添加项目失败:", error)
+    }
+  })
 
-  // 删除项目
-  const removeItem = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      setError(null)
-
+  // 删除项目 mutation
+  const removeItemMutation = useMutation({
+    mutationFn: async (id: string): Promise<void> => {
       const response = await sendToBackground<
         RemoveFaviconDockItemRequest,
         RemoveFaviconDockItemResponse
@@ -133,102 +127,83 @@ export function useFaviconDockItems(): UseFaviconDockItemsReturn {
         body: { id }
       })
 
-      if (response.success) {
-        // 从本地状态中移除
-        setItems((prev) => prev.filter((item) => item.id !== id))
-        return true
-      } else {
+      if (!response.success) {
         throw new Error(response.error || "删除项目失败")
       }
-    } catch (err) {
-      console.error("[useFaviconDockItems] 删除项目失败:", err)
-      setError(err instanceof Error ? err.message : "删除项目失败")
-      return false
+    },
+    onSuccess: () => {
+      // 操作成功后重新获取数据
+      queryClient.invalidateQueries({ queryKey: FAVICON_DOCK_ITEMS_QUERY_KEY })
+    },
+    onError: (error) => {
+      console.error("[useFaviconDockItems] 删除项目失败:", error)
     }
-  }, [])
+  })
 
-  // 更新项目
-  const updateItem = useCallback(
-    async (id: string, updates: Partial<FaviconDockItem>): Promise<boolean> => {
-      try {
-        setError(null)
-
-        const response = await sendToBackground<
-          UpdateFaviconDockItemsRequest,
-          UpdateFaviconDockItemsResponse
-        >({
-          name: "update-favicon-dock-items",
-          body: {
-            action: "update",
-            id,
-            updates
-          }
-        })
-
-        if (response.success) {
-          // 更新本地状态
-          setItems((prev) =>
-            prev.map((item) =>
-              item.id === id ? { ...item, ...updates } : item
-            )
-          )
-          return true
-        } else {
-          throw new Error(response.error || "更新项目失败")
+  // 更新项目 mutation
+  const updateItemMutation = useMutation({
+    mutationFn: async ({
+      id,
+      updates
+    }: {
+      id: string
+      updates: Partial<FaviconDockItem>
+    }): Promise<void> => {
+      const response = await sendToBackground<
+        UpdateFaviconDockItemsRequest,
+        UpdateFaviconDockItemsResponse
+      >({
+        name: "update-favicon-dock-items",
+        body: {
+          action: "update",
+          id,
+          updates
         }
-      } catch (err) {
-        console.error("[useFaviconDockItems] 更新项目失败:", err)
-        setError(err instanceof Error ? err.message : "更新项目失败")
-        return false
+      })
+
+      if (!response.success) {
+        throw new Error(response.error || "更新项目失败")
       }
     },
-    []
-  )
+    onSuccess: () => {
+      // 操作成功后重新获取数据
+      queryClient.invalidateQueries({ queryKey: FAVICON_DOCK_ITEMS_QUERY_KEY })
+    },
+    onError: (error) => {
+      console.error("[useFaviconDockItems] 更新项目失败:", error)
+    }
+  })
 
-  // 重新排序
-  const reorderItems = useCallback(
-    async (itemIds: string[]): Promise<boolean> => {
-      try {
-        setError(null)
-
-        const response = await sendToBackground<
-          UpdateFaviconDockItemsRequest,
-          UpdateFaviconDockItemsResponse
-        >({
-          name: "update-favicon-dock-items",
-          body: {
-            action: "reorder",
-            itemIds
-          }
-        })
-
-        if (response.success) {
-          // 重新排序本地状态
-          setItems((prev) => {
-            const itemMap = new Map(prev.map((item) => [item.id, item]))
-            return itemIds
-              .map((id, index) => ({
-                ...itemMap.get(id)!,
-                order: index
-              }))
-              .filter(Boolean)
-          })
-          return true
-        } else {
-          throw new Error(response.error || "重新排序失败")
+  // 重新排序 mutation
+  const reorderItemsMutation = useMutation({
+    mutationFn: async (itemIds: string[]): Promise<void> => {
+      const response = await sendToBackground<
+        UpdateFaviconDockItemsRequest,
+        UpdateFaviconDockItemsResponse
+      >({
+        name: "update-favicon-dock-items",
+        body: {
+          action: "reorder",
+          itemIds
         }
-      } catch (err) {
-        console.error("[useFaviconDockItems] 重新排序失败:", err)
-        setError(err instanceof Error ? err.message : "重新排序失败")
-        return false
+      })
+
+      if (!response.success) {
+        throw new Error(response.error || "重新排序失败")
       }
     },
-    []
-  )
+    onSuccess: () => {
+      // 操作成功后重新获取数据
+      queryClient.invalidateQueries({ queryKey: FAVICON_DOCK_ITEMS_QUERY_KEY })
+    },
+    onError: (error) => {
+      console.error("[useFaviconDockItems] 重新排序失败:", error)
+    }
+  })
 
-  // 更新最后使用时间
-  const updateLastUsed = useCallback(async (id: string): Promise<boolean> => {
-    try {
+  // 更新最后使用时间 mutation
+  const updateLastUsedMutation = useMutation({
+    mutationFn: async (id: string): Promise<void> => {
       const response = await sendToBackground<
         UpdateFaviconDockItemsRequest,
         UpdateFaviconDockItemsResponse
@@ -240,28 +215,88 @@ export function useFaviconDockItems(): UseFaviconDockItemsReturn {
         }
       })
 
-      if (response.success) {
-        // 更新本地状态
-        setItems((prev) =>
-          prev.map((item) =>
-            item.id === id ? { ...item, lastUsed: Date.now() } : item
-          )
-        )
+      if (!response.success) {
+        throw new Error(response.error || "更新使用时间失败")
+      }
+    },
+    onSuccess: () => {
+      // 操作成功后重新获取数据
+      queryClient.invalidateQueries({ queryKey: FAVICON_DOCK_ITEMS_QUERY_KEY })
+    },
+    onError: (error) => {
+      console.warn("[useFaviconDockItems] 更新使用时间失败:", error)
+    }
+  })
+
+  // 封装操作函数
+  const addItem = useCallback(
+    async (
+      request: Omit<AddFaviconDockItemRequest, "tabId"> & { tabId?: number }
+    ): Promise<boolean> => {
+      try {
+        await addItemMutation.mutateAsync(request)
         return true
-      } else {
-        console.warn("[useFaviconDockItems] 更新使用时间失败:", response.error)
+      } catch {
         return false
       }
-    } catch (err) {
-      console.error("[useFaviconDockItems] 更新使用时间失败:", err)
-      return false
-    }
-  }, [])
+    },
+    [addItemMutation]
+  )
+
+  const removeItem = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        await removeItemMutation.mutateAsync(id)
+        return true
+      } catch {
+        return false
+      }
+    },
+    [removeItemMutation]
+  )
+
+  const updateItem = useCallback(
+    async (id: string, updates: Partial<FaviconDockItem>): Promise<boolean> => {
+      try {
+        await updateItemMutation.mutateAsync({ id, updates })
+        return true
+      } catch {
+        return false
+      }
+    },
+    [updateItemMutation]
+  )
+
+  const reorderItems = useCallback(
+    async (itemIds: string[]): Promise<boolean> => {
+      try {
+        await reorderItemsMutation.mutateAsync(itemIds)
+        return true
+      } catch {
+        return false
+      }
+    },
+    [reorderItemsMutation]
+  )
+
+  const updateLastUsed = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        await updateLastUsedMutation.mutateAsync(id)
+        return true
+      } catch {
+        return false
+      }
+    },
+    [updateLastUsedMutation]
+  )
 
   // 刷新项目列表
   const refreshItems = useCallback(async () => {
-    await fetchItems()
-  }, [fetchItems])
+    await queryClient.invalidateQueries({
+      queryKey: FAVICON_DOCK_ITEMS_QUERY_KEY
+    })
+  }, [queryClient])
 
   // 根据 URL 查找项目
   const getItemByUrl = useCallback(
@@ -279,10 +314,22 @@ export function useFaviconDockItems(): UseFaviconDockItemsReturn {
     [items]
   )
 
-  // 初始化时获取项目
-  useEffect(() => {
-    fetchItems()
-  }, [fetchItems])
+  // 计算加载状态
+  const loading =
+    addItemMutation.isPending ||
+    removeItemMutation.isPending ||
+    updateItemMutation.isPending ||
+    reorderItemsMutation.isPending ||
+    updateLastUsedMutation.isPending
+
+  // 合并错误状态
+  const error =
+    addItemMutation.error?.message ||
+    removeItemMutation.error?.message ||
+    updateItemMutation.error?.message ||
+    reorderItemsMutation.error?.message ||
+    updateLastUsedMutation.error?.message ||
+    null
 
   return {
     // 状态
