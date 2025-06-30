@@ -1,11 +1,9 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest";
 
-import {
-  extractDomain,
-  generateTwentyIconsUrl,
-  isPublicURL,
-  shouldUseDefaultFavicon
-} from "./url-utils"
+
+
+import { extractDomain, generateTwentyIconsUrl, isPublicURL, shouldUseDefaultFavicon } from "./url-utils";
+
 
 describe("URL Utils", () => {
   describe("isPublicURL", () => {

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Component, Suspense, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
+import { sendToBackground } from "@plasmohq/messaging"
 
 import { Button, ColorPicker, Toggle, useTheme } from '~source/shared/components'
 import { useCustomColor } from '~source/shared/hooks/use-custom-color'
@@ -78,6 +79,60 @@ function SettingsLoadingSkeleton() {
           <div className="w-full h-10 bg-gray-200 rounded animate-pulse dark:bg-gray-700" />
         </div>
       ))}
+    </div>
+  )
+}
+
+interface CleanAppCacheResponse {
+  success: boolean
+  error?: string
+  cleanedCaches: string[]
+}
+
+export function CacheCleanupSection() {
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleCleanCache = async () => {
+    setIsLoading(true)
+    try {
+      const response = await sendToBackground<void, CleanAppCacheResponse>({
+        name: "clean-app-cache"
+      })
+
+      if (response.success) {
+        toast.success(
+          `缓存清理成功！已清理：${response.cleanedCaches.join("、")}`
+        )
+      } else {
+        toast.error(`缓存清理失败：${response.error}`)
+      }
+    } catch (error) {
+      toast.error("清理缓存时发生错误")
+      console.error("清理缓存失败:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            缓存管理
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            清理应用缓存数据，包括页面预览、图标等
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          onClick={handleCleanCache}
+          disabled={isLoading}
+        >
+          {isLoading ? "清理中..." : "清理缓存"}
+        </Button>
+      </div>
     </div>
   )
 }
@@ -487,7 +542,10 @@ function SettingsContent() {
           </div>
         </section>
 
-
+        {/* 缓存清理部分 */}
+        <div className="p-4 bg-white rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800">
+          <CacheCleanupSection />
+        </div>
       </div>
 
       {/* 底部操作按钮 */}
@@ -522,8 +580,6 @@ function SettingsContent() {
           </div>
         </div>
       </div>
-
-
     </div>
   )
 }

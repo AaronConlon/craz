@@ -1,4 +1,5 @@
-import type { OgData } from "./og-parser"
+import type { OgData } from "./og-parser";
+
 
 interface OGData {
   url: string
@@ -103,7 +104,7 @@ export class OGCache {
   /**
    * 清理过期缓存
    */
-  public static async cleanup(): Promise<void> {
+  public static async cleanup(force: boolean = false): Promise<void> {
     const db = await this.getDB()
     const tx = db.transaction(this.STORE_NAME, "readwrite")
     const store = tx.objectStore(this.STORE_NAME)
@@ -116,7 +117,7 @@ export class OGCache {
         const cursor = (event.target as IDBRequest).result
         if (cursor) {
           const data = cursor.value as CachedOGData
-          if (new Date(data.expiresAt) < new Date()) {
+          if (force || new Date(data.expiresAt) < new Date()) {
             cursor.delete()
           }
           cursor.continue()
